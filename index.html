@@ -23,26 +23,27 @@
     zoom: 2
   });
 
-  // Show user's location
+  // Show user's current location
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
   }));
 
-  // Once the map loads, enable popups for existing layers with titles/descriptions
   map.on('load', () => {
+    // Find layers that might contain your saved points
     const layers = map.getStyle().layers;
 
     layers.forEach(layer => {
+      // Only attach events to layers that allow click interactivity
       if (layer.type === 'symbol' || layer.type === 'circle') {
         map.on('click', layer.id, (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: [layer.id] });
           if (!features.length) return;
 
           const feature = features[0];
-          const title = feature.properties.title || 'No title';
-          const description = feature.properties.description || 'No description';
+          const title = feature.properties?.title || 'No title';
+          const description = feature.properties?.description || 'No description';
 
           new mapboxgl.Popup()
             .setLngLat(e.lngLat)
@@ -59,6 +60,11 @@
         });
       }
     });
+  });
+</script>
+</body>
+</html>
+
   });
 </script>
 </body>
