@@ -14,19 +14,19 @@
 <body>
 <div id="map"></div>
 <script>
+  // ✅ NEW ACCESS TOKEN
   mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/sightseekr/cmdlqnkiv000n01sd48i53zlj',
+    // ✅ NEW STYLE URL
+    style: 'mapbox://styles/sightseekr/cmdlr4rap009h01r23f5z6h7i',
     center: [-1.133, 53.522], // Doncaster
     zoom: 11.3
   });
 
-  // Add zoom and rotation controls
   map.addControl(new mapboxgl.NavigationControl());
 
-  // Show user's location
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: {
       enableHighAccuracy: true
@@ -36,24 +36,28 @@
   }));
 
   map.on('load', () => {
-    const layers = ['city-centre-new', 'across-doncaster'];
-
-    layers.forEach(layer => {
-      map.on('click', layer, (e) => {
-        const feature = e.features[0];
-        const name = feature.properties.name || "No title";
-        const description = feature.properties.description || "No description";
-
-        new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`<strong>${name}</strong><p>${description}</p>`)
-          .addTo(map);
+    // Handle clicks on feature layers
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['city-centre-new', 'across-doncaster']
       });
 
+      if (!features.length) return;
+
+      const feature = features[0];
+      const name = feature.properties.name || "No title";
+      const description = feature.properties.description || "No description";
+
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${name}</strong><p>${description}</p>`)
+        .addTo(map);
+    });
+
+    ['city-centre-new', 'across-doncaster'].forEach(layer => {
       map.on('mouseenter', layer, () => {
         map.getCanvas().style.cursor = 'pointer';
       });
-
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
       });
@@ -62,12 +66,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
