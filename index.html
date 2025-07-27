@@ -23,45 +23,46 @@
     zoom: 11.3
   });
 
+  // Add zoom and rotation controls
   map.addControl(new mapboxgl.NavigationControl());
+
+  // ✅ Add geolocation control (tracks user position)
   map.addControl(new mapboxgl.GeolocateControl({
-    positionOptions: { enableHighAccuracy: true },
+    positionOptions: {
+      enableHighAccuracy: true
+    },
     trackUserLocation: true,
-    showUserLocation: true
+    showUserHeading: true
   }));
 
   map.on('load', () => {
-    const clickableLayers = ['city-centre-new', 'across-doncaster'];
+    // Handle clicks on both layers
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['city-centre-new', 'across-doncaster']
+      });
 
-    clickableLayers.forEach(layer => {
-      // Check if the layer exists in the style before attaching events
-      if (map.getLayer(layer)) {
-        // Click popups
-        map.on('click', layer, (e) => {
-          const feature = e.features[0];
-          const name = feature.properties.Name || "No title";
-          const description = feature.properties.Description || "No description";
+      if (!features.length) return;
 
-          new mapboxgl.Popup()
-            .setLngLat(e.lngLat)
-            .setHTML(`<strong>${name}</strong><p>${description}</p>`)
-            .addTo(map);
-        });
+      const feature = features[0];
+      const name = feature.properties.name || "No title";
+      const description = feature.properties.description || "No description";
 
-        map.on('mouseenter', layer, () => {
-          map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', layer, () => {
-          map.getCanvas().style.cursor = '';
-        });
-      } else {
-        console.warn(`Layer "${layer}" not found in the map style.`);
-      }
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${name}</strong><p>${description}</p>`)
+        .addTo(map);
     });
 
-    // Optional: Add labels if needed — only if you can confirm your tileset source-layer names
-    // Otherwise skip adding extra layers that may break the map
+    // Add pointer cursor on hover
+    ['city-centre-new', 'across-doncaster'].forEach(layer => {
+      map.on('mouseenter', layer, () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', layer, () => {
+        map.getCanvas().style.cursor = '';
+      });
+    });
   });
 </script>
 </body>
