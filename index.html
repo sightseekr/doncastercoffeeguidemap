@@ -10,6 +10,7 @@
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
+    /* Popup container styling */
     .mapboxgl-popup-content {
       background-color: rgba(255, 255, 255, 0.85) !important;
       border-radius: 6px;
@@ -19,26 +20,46 @@
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
 
+    /* Name in popup */
     .custom-popup strong {
       font-weight: bold;
       display: block;
       margin-bottom: 4px;
     }
 
+    /* Description in popup */
     .custom-popup p {
       font-size: 0.85em;
       font-style: italic;
       margin: 0 0 6px;
     }
 
+    /* Styled Directions button */
     .custom-popup a {
-      color: #007AFF;
-      font-size: 0.9em;
+      display: inline-block;
+      padding: 6px 12px;
+      background-color: #007AFF;
+      color: white;
+      font-size: 0.85em;
+      font-weight: 600;
+      border-radius: 4px;
       text-decoration: none;
+      border: none;
+      outline: none;
+      transition: background-color 0.2s ease;
+      cursor: pointer;
     }
 
     .custom-popup a:hover {
-      text-decoration: underline;
+      background-color: #005ecb;
+      text-decoration: none;
+    }
+
+    .custom-popup a:focus,
+    .custom-popup a:active {
+      outline: none;
+      border: none;
+      box-shadow: none;
     }
   </style>
 </head>
@@ -61,10 +82,11 @@
     showUserHeading: true
   }));
 
-  const layers = ['city-centre-new', 'across-doncaster'];
+  let hoveredPopup = null;
+  let popupEl = null;
+  let overPopup = false;
 
-  // Google Maps links by exact name
-  const directionsLinks = {
+  const directionsMap = {
     "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
     "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
     "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862",
@@ -76,7 +98,7 @@
     "The Glass Strawberry": "https://www.google.com/maps?cid=17678315068369981247",
     "Cafe 1910 (In Danum Gallery, Library and Museum)": "https://www.google.com/maps?cid=1008549081973229459",
     "Old man Staveley's coffee co": "https://www.google.com/maps?cid=11699623048919577819",
-    "Bone Idle Lounge": "https://google.com/maps?cid=11035181184400722709",
+    "Bone Idle Lounge": "https://www.google.com/maps?cid=11035181184400722709",
     "Jazz Café": "https://www.google.com/maps?cid=14635295943506975263",
     "Banco Coffee Co": "https://www.google.com/maps?cid=1769371057472287012",
     "Back in Time Café": "http://google.com/maps?cid=10559689921745810730",
@@ -84,9 +106,7 @@
     "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
   };
 
-  let hoveredPopup = null;
-  let popupEl = null;
-  let overPopup = false;
+  const layers = ['city-centre-new', 'across-doncaster'];
 
   map.on('load', () => {
     layers.forEach(layer => {
@@ -96,21 +116,17 @@
         const feature = e.features[0];
         const name = feature.properties.name || "No title";
         const description = feature.properties.description || "No description";
+        const directionsUrl = directionsMap[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
 
         if (hoveredPopup) hoveredPopup.remove();
 
-        const directionsURL = directionsLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
-
-        hoveredPopup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false
-        })
+        hoveredPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
           .setLngLat(e.lngLat)
           .setHTML(`
             <div class="custom-popup" id="popup-content">
               <strong>${name}</strong>
               <p>${description}</p>
-              <a href="${directionsURL}" target="_blank">Directions</a>
+              <a href="${directionsUrl}" target="_blank">Directions</a>
             </div>
           `)
           .addTo(map);
@@ -143,29 +159,10 @@
       });
     });
 
+    // Fallback for mobile tap
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, { layers: layers });
-      if (!features.length) return;
+      if (!features.length)
 
-      const feature = features[0];
-      const name = feature.properties.name || "No title";
-      const description = feature.properties.description || "No description";
-      const directionsURL = directionsLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
-
-      new mapboxgl.Popup()
-        .setLngLat(e.lngLat)
-        .setHTML(`
-          <div class="custom-popup">
-            <strong>${name}</strong>
-            <p>${description}</p>
-            <a href="${directionsURL}" target="_blank">Directions</a>
-          </div>
-        `)
-        .addTo(map);
-    });
-  });
-</script>
-</body>
-</html>
 
 
