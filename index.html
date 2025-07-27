@@ -26,7 +26,7 @@
   map.addControl(new mapboxgl.NavigationControl());
 
   map.on('load', () => {
-    const layers = ['city-centre1', 'across-doncaster'];
+    const layers = ['city-centre-new', 'across-doncaster'];
 
     layers.forEach(layer => {
       map.on('click', layer, (e) => {
