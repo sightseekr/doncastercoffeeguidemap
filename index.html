@@ -19,11 +19,10 @@
   const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/sightseekr/cmbf68od7005s01scbtvw9un3',
-    center: [-1.133, 53.522],
+    center: [-1.133, 53.522], // Doncaster
     zoom: 11.3
   });
 
-  // Add zoom and location controls
   map.addControl(new mapboxgl.NavigationControl());
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
@@ -32,46 +31,42 @@
   }));
 
   map.on('load', () => {
-    const layers = ['city-centre-new', 'across-doncaster'];
+    const clickableLayers = ['city-centre-new', 'across-doncaster'];
 
-    layers.forEach(layer => {
-      // Add symbol labels for point names
-      map.addLayer({
-        id: `${layer}-label`,
-        type: 'symbol',
-        source: 'composite',
-        'source-layer': layer,
-        layout: {
-          'text-field': ['get', 'Name'], // Use 'Name' or 'name' based on your data
-          'text-size': 12,
-          'text-offset': [0, 1.2],
-          'text-anchor': 'top'
-        },
-        paint: {
-          'text-color': '#111',
-          'text-halo-color': '#fff',
-          'text-halo-width': 1
-        }
-      });
+    clickableLayers.forEach(layer => {
+      // Check if the layer exists in the style before attaching events
+      if (map.getLayer(layer)) {
+        // Click popups
+        map.on('click', layer, (e) => {
+          const feature = e.features[0];
+          const name = feature.properties.Name || "No title";
+          const description = feature.properties.Description || "No description";
 
-      // Popup on click
-      map.on('click', layer, (e) => {
-        const feature = e.features[0];
-        const name = feature.properties.Name || "No title";
-        const description = feature.properties.Description || "No description";
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`<strong>${name}</strong><p>${description}</p>`)
+            .addTo(map);
+        });
 
-        new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`<strong>${name}</strong><p>${description}</p>`)
-          .addTo(map);
-      });
+        map.on('mouseenter', layer, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
 
-      // Change cursor on hover
-      map.on('mouseenter', layer, () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', layer, () => {
-        map.getCanvas().style.cursor = '';
+        map.on('mouseleave', layer, () => {
+          map.getCanvas().style.cursor = '';
+        });
+      } else {
+        console.warn(`Layer "${layer}" not found in the map style.`);
+      }
+    });
+
+    // Optional: Add labels if needed — only if you can confirm your tileset source-layer names
+    // Otherwise skip adding extra layers that may break the map
+  });
+</script>
+</body>
+</html>
+
 
 
 
