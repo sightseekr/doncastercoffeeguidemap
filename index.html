@@ -23,14 +23,23 @@
     zoom: 11.3
   });
 
-  // Add zoom + rotation controls
+  // Add zoom and rotation controls
   map.addControl(new mapboxgl.NavigationControl());
 
+  // ✅ Add geolocation control (tracks user position)
+  map.addControl(new mapboxgl.GeolocateControl({
+    positionOptions: {
+      enableHighAccuracy: true
+    },
+    trackUserLocation: true,
+    showUserHeading: true
+  }));
+
   map.on('load', () => {
-    // Listen for clicks on both layers
+    // Handle clicks on both layers
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: ['city-centre-new', 'across-doncaster'] // Your layer IDs from Studio
+        layers: ['city-centre-new', 'across-doncaster']
       });
 
       if (!features.length) return;
@@ -45,12 +54,11 @@
         .addTo(map);
     });
 
-    // Change cursor to pointer when hovering over clickable points
+    // Add pointer cursor on hover
     ['city-centre-new', 'across-doncaster'].forEach(layer => {
       map.on('mouseenter', layer, () => {
         map.getCanvas().style.cursor = 'pointer';
       });
-
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
       });
@@ -59,6 +67,7 @@
 </script>
 </body>
 </html>
+
 
 
 
