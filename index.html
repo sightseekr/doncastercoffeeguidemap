@@ -74,10 +74,9 @@
   }));
 
   const layers = ['city-centre-new', 'across-doncaster'];
-  let hoveredPopup = null;
+  let currentPopup = null;
   let popupEl = null;
   let overPopup = false;
-  let mobilePopup = null;
 
   const directionsLinks = {
     "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
@@ -99,89 +98,71 @@
     "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
   };
 
+  function showPopup(e, feature, lngLat) {
+    const name = feature.properties.name;
+    const description = feature.properties.description;
+    const link = directionsLinks[name];
+
+    if (currentPopup) currentPopup.remove();
+
+    currentPopup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    })
+    .setLngLat(lngLat)
+    .setHTML(`
+      <div class="custom-popup" id="popup-content">
+        <strong>${name}</strong>
+        <p>${description}</p>
+        ${link ? `<a href="${link}" class="directions-btn" target="_blank">
+          <span class="icon">📍</span> Directions
+        </a>` : ''}
+      </div>
+    `)
+    .addTo(map);
+
+    setTimeout(() => {
+      popupEl = document.getElementById('popup-content');
+      if (popupEl) {
+        popupEl.addEventListener('mouseenter', () => overPopup = true);
+        popupEl.addEventListener('mouseleave', () => {
+          overPopup = false;
+          setTimeout(() => {
+            if (!overPopup && currentPopup) {
+              currentPopup.remove();
+              currentPopup = null;
+            }
+          }, 150);
+        });
+      }
+    }, 0);
+  }
+
   map.on('load', () => {
-    // Hover popups for desktop
     layers.forEach(layer => {
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
         const feature = e.features[0];
-        const name = feature.properties.name;
-        const description = feature.properties.description;
-        const link = directionsLinks[name];
-
-        if (hoveredPopup) hoveredPopup.remove();
-
-        hoveredPopup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false
-        })
-        .setLngLat(e.lngLat)
-        .setHTML(`
-          <div class="custom-popup" id="popup-content">
-            <strong>${name}</strong>
-            <p>${description}</p>
-            ${link ? `<a href="${link}" class="directions-btn" target="_blank">
-              <span class="icon">📍</span> Directions
-            </a>` : ''}
-          </div>
-        `)
-        .addTo(map);
-
-        setTimeout(() => {
-          popupEl = document.getElementById('popup-content');
-          if (popupEl) {
-            popupEl.addEventListener('mouseenter', () => overPopup = true);
-            popupEl.addEventListener('mouseleave', () => {
-              overPopup = false;
-              setTimeout(() => {
-                if (!overPopup && hoveredPopup) {
-                  hoveredPopup.remove();
-                  hoveredPopup = null;
-                }
-              }, 150);
-            });
-          }
-        }, 0);
+        showPopup(e, feature, e.lngLat);
       });
 
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
         setTimeout(() => {
-          if (!overPopup && hoveredPopup) {
-            hoveredPopup.remove();
-            hoveredPopup = null;
+          if (!overPopup && currentPopup) {
+            currentPopup.remove();
+            currentPopup = null;
           }
         }, 150);
       });
     });
 
-    // Tap popups for mobile
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: layers });
+      const features = map.queryRenderedFeatures(e.point, { layers });
       if (!features.length) return;
 
-      if (mobilePopup) {
-        mobilePopup.remove();
-        mobilePopup = null;
-      }
-
       const feature = features[0];
-      const name = feature.properties.name;
-      const description = feature.properties.description;
-      const link = directionsLinks[name];
-
-      mobilePopup = new mapboxgl.Popup({ closeOnClick: true })
-        .setLngLat(e.lngLat)
-        .setHTML(`
-          <div class="custom-popup">
-            <strong>${name}</strong>
-            <p>${description}</p>
-            ${link ? `<a href="${link}" class="directions-btn" target="_blank">
-              <span class="icon">📍</span> Directions
-            </a>` : ''}
-          </div>
-        `)
-        .addTo(map);
+      showPopup(e, feature, e.lngLat);
     });
   });
 </script>
