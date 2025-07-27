@@ -10,7 +10,7 @@
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-    /* Popup container styling */
+    /* Popup styling */
     .mapboxgl-popup-content {
       background-color: rgba(255, 255, 255, 0.85) !important;
       border-radius: 6px;
@@ -20,46 +20,43 @@
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
 
-    /* Name in popup */
     .custom-popup strong {
       font-weight: bold;
       display: block;
       margin-bottom: 4px;
     }
 
-    /* Description in popup */
     .custom-popup p {
       font-size: 0.85em;
       font-style: italic;
       margin: 0 0 6px;
     }
 
-    /* Styled Directions button */
+    /* Directions button */
     .custom-popup a {
-      display: inline-block;
-      padding: 6px 12px;
-      background-color: #007AFF;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background-color: #EA736B;
       color: white;
-      font-size: 0.85em;
+      font-size: 0.82em;
       font-weight: 600;
-      border-radius: 4px;
+      border-radius: 20px;
       text-decoration: none;
       border: none;
-      outline: none;
       transition: background-color 0.2s ease;
       cursor: pointer;
     }
 
     .custom-popup a:hover {
-      background-color: #005ecb;
-      text-decoration: none;
+      background-color: #d95f57;
     }
 
-    .custom-popup a:focus,
-    .custom-popup a:active {
-      outline: none;
-      border: none;
-      box-shadow: none;
+    .custom-popup svg {
+      width: 14px;
+      height: 14px;
+      fill: white;
     }
   </style>
 </head>
@@ -76,17 +73,17 @@
   });
 
   map.addControl(new mapboxgl.NavigationControl());
+
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
   }));
 
-  let hoveredPopup = null;
-  let popupEl = null;
-  let overPopup = false;
+  const layers = ['city-centre-new', 'across-doncaster'];
 
-  const directionsMap = {
+  // Map of place names to their Google Maps URLs
+  const placeLinks = {
     "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
     "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
     "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862",
@@ -106,7 +103,9 @@
     "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
   };
 
-  const layers = ['city-centre-new', 'across-doncaster'];
+  let hoveredPopup = null;
+  let popupEl = null;
+  let overPopup = false;
 
   map.on('load', () => {
     layers.forEach(layer => {
@@ -116,7 +115,7 @@
         const feature = e.features[0];
         const name = feature.properties.name || "No title";
         const description = feature.properties.description || "No description";
-        const directionsUrl = directionsMap[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
+        const link = placeLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
 
         if (hoveredPopup) hoveredPopup.remove();
 
@@ -126,7 +125,12 @@
             <div class="custom-popup" id="popup-content">
               <strong>${name}</strong>
               <p>${description}</p>
-              <a href="${directionsUrl}" target="_blank">Directions</a>
+              <a href="${link}" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
+                </svg>
+                Directions
+              </a>
             </div>
           `)
           .addTo(map);
@@ -159,15 +163,15 @@
       });
     });
 
-    // Fallback for mobile tap
+    // Mobile tap fallback
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: layers });
-if (!features.length) return;
+      const features = map.queryRenderedFeatures(e.point, { layers });
+      if (!features.length) return;
 
       const feature = features[0];
       const name = feature.properties.name || "No title";
       const description = feature.properties.description || "No description";
-      const directionsUrl = directionsMap[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
+      const link = placeLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
 
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
@@ -175,7 +179,12 @@ if (!features.length) return;
           <div class="custom-popup">
             <strong>${name}</strong>
             <p>${description}</p>
-            <a href="${directionsUrl}" target="_blank">Directions</a>
+            <a href="${link}" target="_blank">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
+              </svg>
+              Directions
+            </a>
           </div>
         `)
         .addTo(map);
