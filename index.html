@@ -10,12 +10,14 @@
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-    .custom-popup {
-      background-color: rgba(255, 255, 255, 0.85);
+    /* Transparent and styled popup */
+    .mapboxgl-popup-content {
+      background-color: rgba(255, 255, 255, 0.85) !important;
       border-radius: 6px;
       padding: 8px 12px;
       font-family: sans-serif;
-      max-width: 200px;
+      max-width: 220px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
 
     .custom-popup strong {
@@ -56,9 +58,7 @@
   map.addControl(new mapboxgl.NavigationControl());
 
   map.addControl(new mapboxgl.GeolocateControl({
-    positionOptions: {
-      enableHighAccuracy: true
-    },
+    positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
   }));
@@ -70,7 +70,7 @@
   const layers = ['city-centre-new', 'across-doncaster'];
 
   map.on('load', () => {
-    // Hover popups with sticky behavior
+    // Hover interaction
     layers.forEach(layer => {
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
@@ -95,7 +95,6 @@
           `)
           .addTo(map);
 
-        // Delay so the popup content exists in DOM
         setTimeout(() => {
           popupEl = document.getElementById('popup-content');
           if (popupEl) {
@@ -124,12 +123,9 @@
       });
     });
 
-    // Mobile / click fallback
+    // Fallback for mobile tap
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: layers
-      });
-
+      const features = map.queryRenderedFeatures(e.point, { layers: layers });
       if (!features.length) return;
 
       const feature = features[0];
