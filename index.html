@@ -162,7 +162,28 @@
     // Fallback for mobile tap
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, { layers: layers });
-      if (!features.length)
+if (!features.length) return;
+
+      const feature = features[0];
+      const name = feature.properties.name || "No title";
+      const description = feature.properties.description || "No description";
+      const directionsUrl = directionsMap[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
+
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="custom-popup">
+            <strong>${name}</strong>
+            <p>${description}</p>
+            <a href="${directionsUrl}" target="_blank">Directions</a>
+          </div>
+        `)
+        .addTo(map);
+    });
+  });
+</script>
+</body>
+</html>
 
 
 
