@@ -9,6 +9,22 @@
   <style>
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+    .custom-popup {
+      background-color: rgba(255, 255, 255, 0.85); /* semi-transparent white */
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: sans-serif;
+    }
+    .custom-popup strong {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .custom-popup p {
+      font-size: 12px;
+      font-style: italic;
+      margin: 4px 0 0;
+    }
   </style>
 </head>
 <body>
@@ -23,20 +39,15 @@
     zoom: 11.3
   });
 
-  // Add zoom and rotation controls
   map.addControl(new mapboxgl.NavigationControl());
 
-  // Add geolocation control
   map.addControl(new mapboxgl.GeolocateControl({
-    positionOptions: {
-      enableHighAccuracy: true
-    },
+    positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
   }));
 
   map.on('load', () => {
-    // Handle clicks on both layers
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ['city-centre-new', 'across-doncaster']
@@ -50,31 +61,39 @@
 
       new mapboxgl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(`<strong>${name}</strong><p>${description}</p>`)
+        .setHTML(`
+          <div class="custom-popup">
+            <strong>${name}</strong>
+            <p>${description}</p>
+          </div>
+        `)
         .addTo(map);
     });
 
-    // Cursor and hover popups
     let hoveredPopup;
 
     ['city-centre-new', 'across-doncaster'].forEach(layer => {
-      // Pointer on hover
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
 
         const feature = e.features[0];
-        const name = feature.properties.name || 'No name';
+        const name = feature.properties.name || "No title";
+        const description = feature.properties.description || "No description";
 
         hoveredPopup = new mapboxgl.Popup({
           closeButton: false,
           closeOnClick: false
         })
           .setLngLat(e.lngLat)
-          .setHTML(`<strong>${name}</strong>`)
+          .setHTML(`
+            <div class="custom-popup">
+              <strong>${name}</strong>
+              <p>${description}</p>
+            </div>
+          `)
           .addTo(map);
       });
 
-      // Reset on mouse leave
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
         if (hoveredPopup) {
@@ -87,4 +106,5 @@
 </script>
 </body>
 </html>
+
 
