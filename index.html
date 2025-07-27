@@ -31,8 +31,8 @@
     layers.forEach(layer => {
       map.on('click', layer, (e) => {
         const feature = e.features[0];
-        const name = feature.properties.Name || "No title";
-        const description = feature.properties.Description || "No description";
+        const name = feature.properties.name || "No title";
+        const description = feature.properties.description || "No description";
 
         new mapboxgl.Popup()
           .setLngLat(e.lngLat)
