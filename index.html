@@ -10,53 +10,47 @@
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-    /* Popup styling */
     .mapboxgl-popup-content {
-      background-color: rgba(255, 255, 255, 0.85) !important;
-      border-radius: 6px;
-      padding: 8px 12px;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 12px 14px;
       font-family: sans-serif;
-      max-width: 220px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+      max-width: 240px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 
     .custom-popup strong {
       font-weight: bold;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      font-size: 1em;
     }
 
     .custom-popup p {
       font-size: 0.85em;
       font-style: italic;
-      margin: 0 0 6px;
+      margin: 0 0 10px;
     }
 
-    /* Directions button */
-    .custom-popup a {
+    .directions-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
+      padding: 6px 12px;
       background-color: #EA736B;
       color: white;
-      font-size: 0.82em;
-      font-weight: 600;
-      border-radius: 20px;
       text-decoration: none;
-      border: none;
+      font-size: 0.9em;
+      border-radius: 999px;
       transition: background-color 0.2s ease;
-      cursor: pointer;
     }
 
-    .custom-popup a:hover {
-      background-color: #d95f57;
+    .directions-btn:hover {
+      background-color: #d55e56;
     }
 
-    .custom-popup svg {
-      width: 14px;
-      height: 14px;
-      fill: white;
+    .icon {
+      margin-right: 6px;
+      font-size: 1em;
     }
   </style>
 </head>
@@ -73,7 +67,6 @@
   });
 
   map.addControl(new mapboxgl.NavigationControl());
-
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
@@ -81,9 +74,12 @@
   }));
 
   const layers = ['city-centre-new', 'across-doncaster'];
+  let hoveredPopup = null;
+  let popupEl = null;
+  let overPopup = false;
+  let mobilePopup = null;
 
-  // Map of place names to their Google Maps URLs
-  const placeLinks = {
+  const directionsLinks = {
     "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
     "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
     "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862",
@@ -98,42 +94,38 @@
     "Bone Idle Lounge": "https://www.google.com/maps?cid=11035181184400722709",
     "Jazz Café": "https://www.google.com/maps?cid=14635295943506975263",
     "Banco Coffee Co": "https://www.google.com/maps?cid=1769371057472287012",
-    "Back in Time Café": "http://google.com/maps?cid=10559689921745810730",
+    "Back in Time Café": "https://www.google.com/maps?cid=10559689921745810730",
     "Da Leo Restaurant": "https://www.google.com/maps?cid=6913375424484086838",
     "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
   };
 
-  let hoveredPopup = null;
-  let popupEl = null;
-  let overPopup = false;
-
   map.on('load', () => {
+    // Hover popups for desktop
     layers.forEach(layer => {
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
-
         const feature = e.features[0];
-        const name = feature.properties.name || "No title";
-        const description = feature.properties.description || "No description";
-        const link = placeLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
+        const name = feature.properties.name;
+        const description = feature.properties.description;
+        const link = directionsLinks[name];
 
         if (hoveredPopup) hoveredPopup.remove();
 
-        hoveredPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div class="custom-popup" id="popup-content">
-              <strong>${name}</strong>
-              <p>${description}</p>
-              <a href="${link}" target="_blank">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
-                </svg>
-                Directions
-              </a>
-            </div>
-          `)
-          .addTo(map);
+        hoveredPopup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false
+        })
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="custom-popup" id="popup-content">
+            <strong>${name}</strong>
+            <p>${description}</p>
+            ${link ? `<a href="${link}" class="directions-btn" target="_blank">
+              <span class="icon">📍</span> Directions
+            </a>` : ''}
+          </div>
+        `)
+        .addTo(map);
 
         setTimeout(() => {
           popupEl = document.getElementById('popup-content');
@@ -163,28 +155,30 @@
       });
     });
 
-    // Mobile tap fallback
+    // Tap popups for mobile
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers });
+      const features = map.queryRenderedFeatures(e.point, { layers: layers });
       if (!features.length) return;
 
-      const feature = features[0];
-      const name = feature.properties.name || "No title";
-      const description = feature.properties.description || "No description";
-      const link = placeLinks[name] || `https://www.google.com/maps/dir/?api=1&destination=${e.lngLat.lat},${e.lngLat.lng}`;
+      if (mobilePopup) {
+        mobilePopup.remove();
+        mobilePopup = null;
+      }
 
-      new mapboxgl.Popup()
+      const feature = features[0];
+      const name = feature.properties.name;
+      const description = feature.properties.description;
+      const link = directionsLinks[name];
+
+      mobilePopup = new mapboxgl.Popup({ closeOnClick: true })
         .setLngLat(e.lngLat)
         .setHTML(`
           <div class="custom-popup">
             <strong>${name}</strong>
             <p>${description}</p>
-            <a href="${link}" target="_blank">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
-              </svg>
-              Directions
-            </a>
+            ${link ? `<a href="${link}" class="directions-btn" target="_blank">
+              <span class="icon">📍</span> Directions
+            </a>` : ''}
           </div>
         `)
         .addTo(map);
@@ -193,6 +187,5 @@
 </script>
 </body>
 </html>
-
 
 
