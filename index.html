@@ -14,19 +14,19 @@
 <body>
 <div id="map"></div>
 <script>
-  // ✅ NEW ACCESS TOKEN
   mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
 
   const map = new mapboxgl.Map({
     container: 'map',
-    // ✅ NEW STYLE URL
     style: 'mapbox://styles/sightseekr/cmdlr4rap009h01r23f5z6h7i',
     center: [-1.133, 53.522], // Doncaster
     zoom: 11.3
   });
 
+  // Add zoom and rotation controls
   map.addControl(new mapboxgl.NavigationControl());
 
+  // Add geolocation control
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: {
       enableHighAccuracy: true
@@ -36,7 +36,7 @@
   }));
 
   map.on('load', () => {
-    // Handle clicks on feature layers
+    // Handle clicks on both layers
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ['city-centre-new', 'across-doncaster']
@@ -54,15 +54,37 @@
         .addTo(map);
     });
 
+    // Cursor and hover popups
+    let hoveredPopup;
+
     ['city-centre-new', 'across-doncaster'].forEach(layer => {
-      map.on('mouseenter', layer, () => {
+      // Pointer on hover
+      map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
+
+        const feature = e.features[0];
+        const name = feature.properties.name || 'No name';
+
+        hoveredPopup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false
+        })
+          .setLngLat(e.lngLat)
+          .setHTML(`<strong>${name}</strong>`)
+          .addTo(map);
       });
+
+      // Reset on mouse leave
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
+        if (hoveredPopup) {
+          hoveredPopup.remove();
+          hoveredPopup = null;
+        }
       });
     });
   });
 </script>
 </body>
 </html>
+
