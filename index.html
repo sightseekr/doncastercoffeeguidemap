@@ -23,24 +23,30 @@
     zoom: 11.3
   });
 
+  // Add zoom + rotation controls
   map.addControl(new mapboxgl.NavigationControl());
 
   map.on('load', () => {
-    const layers = ['city-centre-new', 'across-doncaster'];
-
-    layers.forEach(layer => {
-      map.on('click', layer, (e) => {
-        const feature = e.features[0];
-        const name = feature.properties.name || "No title";
-        const description = feature.properties.description || "No description";
-
-        new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`<strong>${name}</strong><p>${description}</p>`)
-          .addTo(map);
+    // Listen for clicks on both layers
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['city-centre-new', 'across-doncaster'] // Your layer IDs from Studio
       });
 
-      // Change cursor to pointer on hover
+      if (!features.length) return;
+
+      const feature = features[0];
+      const name = feature.properties.name || "No title";
+      const description = feature.properties.description || "No description";
+
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${name}</strong><p>${description}</p>`)
+        .addTo(map);
+    });
+
+    // Change cursor to pointer when hovering over clickable points
+    ['city-centre-new', 'across-doncaster'].forEach(layer => {
       map.on('mouseenter', layer, () => {
         map.getCanvas().style.cursor = 'pointer';
       });
@@ -54,7 +60,6 @@
 </body>
 </html>
 
-</html>
 
 
 
