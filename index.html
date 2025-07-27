@@ -47,8 +47,8 @@
 
     for (const feature of features) {
       if (feature.layer.type === 'circle' || feature.layer.type === 'symbol') {
-        const name = feature.properties.Name || "No title";
-        const description = feature.properties.Description || "No description";
+        const name = feature.properties.name || "No title";
+        const description = feature.properties.description || "No description";
 
         new mapboxgl.Popup()
           .setLngLat(e.lngLat)
