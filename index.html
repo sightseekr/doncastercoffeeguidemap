@@ -48,12 +48,13 @@
 <script>
   mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
 
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/sightseekr/cmdlr4rap009h01r23f5z6h7i',
-    center: [-1.133, 53.522],
-    zoom: 11.3
-  });
+ const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'https://api.mapbox.com/styles/v1/sightseekr/cmdlr4rap009h01r23f5z6h7i?access_token=pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA',
+  center: [-1.133, 53.522],
+  zoom: 11.3
+});
+
 
   map.addControl(new mapboxgl.NavigationControl());
 
