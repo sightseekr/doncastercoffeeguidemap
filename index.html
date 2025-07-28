@@ -195,16 +195,8 @@ function createPopup(feature, lngLat, clicked = false) {
 
 function searchAndZoomToFeature(name) {
   const layers = ['city-centre-new', 'across-doncaster'];
-  const layerToSourceLayer = {
-    'city-centre-new': 'City_centre-0z9ge3',
-    'across-doncaster': 'Across_doncaster_2-16g8to'
-  };
-  const sourceId = Object.keys(map.getStyle().sources)[0]; // your vector tileset source
-
   for (let layer of layers) {
-    const sourceLayer = layerToSourceLayer[layer];
-    const features = map.querySourceFeatures(sourceId, { sourceLayer });
-
+    const features = map.queryRenderedFeatures({ layers: [layer] });
     for (let feature of features) {
       if (
         feature.properties &&
@@ -218,8 +210,7 @@ function searchAndZoomToFeature(name) {
       }
     }
   }
-
-  alert("That location was not found on the map. Check spelling or zoom in manually.");
+  alert("That location was not found on the map yet. Try zooming in or checking spelling.");
 }
 
 
