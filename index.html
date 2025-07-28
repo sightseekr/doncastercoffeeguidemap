@@ -254,40 +254,40 @@
   searchInput.addEventListener('focus', () => searchInput.dispatchEvent(new Event('input')));
 
   map.on('load', () => {
-    const layers = ['city-centre-new', 'across-doncaster'];
+  const layers = ['city-centre-new', 'across-doncaster'];
 
-    layers.forEach(layer => {
-      const layerToSourceLayer = {
-  'city-centre-new': 'City_centre-0z9ge3',
-  'across-doncaster': 'Across_doncaster_2-16g8to' 
-};
+  const layerToSourceLayer = {
+    'city-centre-new': 'City_centre-0z9ge3',
+    'across-doncaster': 'Across_doncaster_2-16g8to'
+  };
 
-layers.forEach(layer => {
-  const sourceLayer = layerToSourceLayer[layer];
+  layers.forEach(layer => {
+    const sourceLayer = layerToSourceLayer[layer];
+    if (!sourceLayer) return;
 
-  if (!sourceLayer) return; // Skip if we don't know the source layer
+    const sourceId = Object.keys(map.getStyle().sources)[0]; // fallback if not 'composite'
+    const features = map.querySourceFeatures(
+      sourceId,
+      { sourceLayer }
+    );
 
-  const features = map.querySourceFeatures(map.getStyle().sources['composite'] ? 'composite' : Object.keys(map.getStyle().sources)[0], {
-    sourceLayer
-  });
+    allFeatures.push(...features);
 
-  allFeatures.push(...features);
+    map.on('mouseenter', layer, e => {
+      map.getCanvas().style.cursor = 'pointer';
+      createPopup(e.features[0], e.lngLat);
+    });
 
-  map.on('mouseenter', layer, e => {
-    map.getCanvas().style.cursor = 'pointer';
-    createPopup(e.features[0], e.lngLat);
-  });
+    map.on('mouseleave', layer, () => {
+      map.getCanvas().style.cursor = '';
+      if (currentPopup) currentPopup.remove();
+    });
 
-  map.on('mouseleave', layer, () => {
-    map.getCanvas().style.cursor = '';
-    if (currentPopup) currentPopup.remove();
-  });
-
-  map.on('click', layer, e => {
-    createPopup(e.features[0], e.lngLat);
+    map.on('click', layer, e => {
+      createPopup(e.features[0], e.lngLat);
+    });
   });
 });
-
 
       map.on('mouseenter', layer, e => {
         map.getCanvas().style.cursor = 'pointer';
