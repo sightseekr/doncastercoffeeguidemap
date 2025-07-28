@@ -7,14 +7,13 @@
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
     .mapboxgl-popup-content {
       background-color: rgba(255, 255, 255, 0.9);
       border-radius: 8px;
       padding: 12px 14px;
-      font-family: sans-serif;
       max-width: 240px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
@@ -23,7 +22,6 @@
       font-weight: bold;
       display: block;
       margin-bottom: 6px;
-      font-size: 1em;
     }
 
     .custom-popup p {
@@ -52,10 +50,66 @@
       margin-right: 6px;
       font-size: 1em;
     }
+
+    /* Search styles */
+    .search-container {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 999px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+      font-size: 1em;
+    }
+
+    .results {
+      background: white;
+      border-radius: 12px;
+      margin-top: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .result-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .result-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .no-results {
+      padding: 10px;
+      font-size: 0.9em;
+      color: #555;
+    }
+
+    .no-results a {
+      color: #EA736B;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
 <div id="map"></div>
+
+<div class="search-container">
+  <input id="search-input" type="text" placeholder="Search coffee spots..." />
+  <div id="search-results" class="results" style="display: none;"></div>
+</div>
+
 <script>
   mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
 
@@ -77,6 +131,7 @@
   let currentPopup = null;
   let popupEl = null;
   let overPopup = false;
+  let allFeatures = [];
 
   const directionsLinks = {
     "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
@@ -98,75 +153,97 @@
     "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
   };
 
-  function showPopup(e, feature, lngLat) {
+  function showPopup(feature, lngLat) {
     const name = feature.properties.name;
     const description = feature.properties.description;
     const link = directionsLinks[name];
 
     if (currentPopup) currentPopup.remove();
 
-    currentPopup = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false
-    })
-    .setLngLat(lngLat)
-    .setHTML(`
-      <div class="custom-popup" id="popup-content">
-        <strong>${name}</strong>
-        <p>${description}</p>
-        ${link ? `<a href="${link}" class="directions-btn" target="_blank">
-          <span class="icon">📍</span> Directions
-        </a>` : ''}
-      </div>
-    `)
-    .addTo(map);
-
-    setTimeout(() => {
-      popupEl = document.getElementById('popup-content');
-      if (popupEl) {
-        popupEl.addEventListener('mouseenter', () => overPopup = true);
-        popupEl.addEventListener('mouseleave', () => {
-          overPopup = false;
-          setTimeout(() => {
-            if (!overPopup && currentPopup) {
-              currentPopup.remove();
-              currentPopup = null;
-            }
-          }, 150);
-        });
-      }
-    }, 0);
+    currentPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+      .setLngLat(lngLat)
+      .setHTML(`
+        <div class="custom-popup" id="popup-content">
+          <strong>${name}</strong>
+          <p>${description}</p>
+          ${link ? `<a href="${link}" class="directions-btn" target="_blank">
+            <span class="icon">📍</span> Directions
+          </a>` : ''}
+        </div>
+      `)
+      .addTo(map);
   }
 
   map.on('load', () => {
     layers.forEach(layer => {
+      const sourceFeatures = map.querySourceFeatures(layer);
+      sourceFeatures.forEach(f => allFeatures.push(f));
+
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
-        const feature = e.features[0];
-        showPopup(e, feature, e.lngLat);
+        showPopup(e.features[0], e.lngLat);
       });
 
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
-        setTimeout(() => {
-          if (!overPopup && currentPopup) {
-            currentPopup.remove();
-            currentPopup = null;
-          }
-        }, 150);
+        if (!overPopup && currentPopup) {
+          currentPopup.remove();
+          currentPopup = null;
+        }
+      });
+
+      map.on('click', layer, (e) => {
+        showPopup(e.features[0], e.lngLat);
       });
     });
+  });
 
-    map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers });
-      if (!features.length) return;
+  // Search logic
+  const searchInput = document.getElementById("search-input");
+  const resultsContainer = document.getElementById("search-results");
 
-      const feature = features[0];
-      showPopup(e, feature, e.lngLat);
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase();
+    resultsContainer.innerHTML = "";
+
+    if (!query) {
+      resultsContainer.style.display = "none";
+      return;
+    }
+
+    const matches = allFeatures.filter(f =>
+      f.properties.name.toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) {
+      resultsContainer.style.display = "block";
+      resultsContainer.innerHTML = `
+        <div class="no-results">
+          Can’t find what you’re looking for here?<br>
+          <a href="https://maps.google.com" target="_blank">Search on Google Maps</a> or <a href="https://www.visitdoncaster.com/" target="_blank">Visit Doncaster</a>
+        </div>
+      `;
+      return;
+    }
+
+    matches.forEach(f => {
+      const item = document.createElement("div");
+      item.className = "result-item";
+      item.textContent = f.properties.name;
+      item.onclick = () => {
+        map.flyTo({ center: f.geometry.coordinates, zoom: 15 });
+        showPopup(f, f.geometry.coordinates);
+        resultsContainer.style.display = "none";
+        searchInput.value = "";
+      };
+      resultsContainer.appendChild(item);
     });
+
+    resultsContainer.style.display = "block";
   });
 </script>
 </body>
 </html>
+
 
 
