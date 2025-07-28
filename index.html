@@ -295,15 +295,9 @@ function createPopup(feature, lngLat, clicked = false) {
       currentPopup.remove();
       currentPopup = null;
     }
-  });
+     });
 
-  map.on('click', layer, e => {
-    createPopup(e.features[0], e.lngLat, true); // clicked = true
-  });
-
-         });
-
-    // Global click: close popup if user clicks on map background
+    // Global click: close popup if user clicks on empty map space
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ['city-centre-new', 'across-doncaster']
@@ -316,7 +310,7 @@ function createPopup(feature, lngLat, clicked = false) {
       }
     });
   });
-  });
+
 </script>
 </body>
 </html>
