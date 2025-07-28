@@ -167,26 +167,31 @@
   const searchInput = document.getElementById('search');
   const suggestionsDiv = document.getElementById('suggestions');
   let currentPopup = null;
+  let popupOpenedByClick = false;
 
-  function createPopup(feature, lngLat) {
-    if (currentPopup) currentPopup.remove();
-    const name = feature.properties.name || "No title";
-    const description = feature.properties.description || "No description";
-    const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
 
-    currentPopup = new mapboxgl.Popup({ closeButton: false })
-      .setLngLat(lngLat)
-      .setHTML(`
-        <div class="custom-popup">
-          <strong>${name}</strong>
-          <p>${description}</p>
-          <a href="${directions}" class="directions-btn" target="_blank">
-            <span>Directions</span> <span>📍</span>
-          </a>
-        </div>
-      `)
-      .addTo(map);
-  }
+function createPopup(feature, lngLat, clicked = false) {
+  if (currentPopup) currentPopup.remove();
+  popupOpenedByClick = clicked;
+
+  const name = feature.properties.name || "No title";
+  const description = feature.properties.description || "No description";
+  const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+
+  currentPopup = new mapboxgl.Popup({ closeButton: false })
+    .setLngLat(lngLat)
+    .setHTML(`
+      <div class="custom-popup">
+        <strong>${name}</strong>
+        <p>${description}</p>
+        <a href="${directions}" class="directions-btn" target="_blank">
+          <span>Directions</span> <span>📍</span>
+        </a>
+      </div>
+    `)
+    .addTo(map);
+}
+
 
   function searchAndZoomToFeature(name) {
     const layers = ['city-centre-new', 'across-doncaster'];
@@ -279,17 +284,23 @@
       const sourceLayer = layerToSourceLayer[layer];
       const sourceId = Object.keys(map.getStyle().sources)[0];
 
-      map.on('mouseenter', layer, e => {
-        map.getCanvas().style.cursor = 'pointer';
-        createPopup(e.features[0], e.lngLat);
-      });
+        map.on('mouseenter', layer, e => {
+    map.getCanvas().style.cursor = 'pointer';
+    createPopup(e.features[0], e.lngLat, false); // hover
+  });
 
-      map.on('mouseleave', layer, () => {
-        map.getCanvas().style.cursor = '';
-      });
+  map.on('mouseleave', layer, () => {
+    map.getCanvas().style.cursor = '';
+    if (!popupOpenedByClick && currentPopup) {
+      currentPopup.remove();
+      currentPopup = null;
+    }
+  });
 
-      map.on('click', layer, e => {
-        createPopup(e.features[0], e.lngLat);
+  map.on('click', layer, e => {
+    createPopup(e.features[0], e.lngLat, true); // clicked = true
+  });
+
       });
     });
     map.on('click', (e) => {
@@ -299,8 +310,10 @@
 
   // If the click isn't on a feature, close the popup
   if (!features.length && currentPopup) {
-    currentPopup.remove();
-    currentPopup = null;
+  currentPopup.remove();
+  currentPopup = null;
+  popupOpenedByClick = false;
+}
   }
 });
   });
