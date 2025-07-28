@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -125,6 +126,8 @@
       "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122"
     };
 
+    let allFeatures = [];
+    let fuse;
     let currentPopup = null;
 
     function showPopup(feature, lngLat) {
@@ -162,47 +165,59 @@
           showPopup(e.features[0], e.lngLat);
         });
       });
+
+      // Collect all features from both layers
+      layers.forEach(layer => {
+        const features = map.querySourceFeatures(map.getStyle().layers.find(l => l.id === layer).source, {
+          sourceLayer: layer
+        });
+        allFeatures.push(...features);
+      });
+
+      // De-duplicate by name
+      const seen = new Set();
+      allFeatures = allFeatures.filter(f => {
+        const n = f.properties.name;
+        if (!n || seen.has(n)) return false;
+        seen.add(n);
+        return true;
+      });
+
+      // Setup Fuse.js
+      fuse = new Fuse(allFeatures, {
+        keys: ['properties.name'],
+        threshold: 0.4, // Allow moderate typos
+      });
     });
 
-    // 🔍 Search functionality
     const searchInput = document.getElementById('search');
     const resultsContainer = document.getElementById('results');
 
-    function getVisibleFeatures() {
-      return map.queryRenderedFeatures({ layers });
-    }
-
     function updateSearchResults(query = "") {
-      const lower = query.toLowerCase();
       resultsContainer.innerHTML = "";
+      if (!query) {
+        showSuggestions(allFeatures.slice(0, 8)); // show top 8 suggestions on focus
+        return;
+      }
 
-      const visible = getVisibleFeatures();
-      const seen = new Set();
-      const unique = visible.filter(f => {
-        const n = f.properties.name;
-        if (n && !seen.has(n)) {
-          seen.add(n);
-          return true;
-        }
-        return false;
-      });
-
-      const matches = unique.filter(f =>
-        f.properties.name.toLowerCase().includes(lower)
-      );
-
-      if (matches.length === 0 && query) {
-        resultsContainer.style.display = "block";
+      const matches = fuse.search(query);
+      if (matches.length === 0) {
         resultsContainer.innerHTML = `
           <div class="no-results">
             Can’t find what you’re looking for here?<br>
             <a href="https://maps.google.com" target="_blank">Search on Google Maps</a> or
             <a href="https://www.visitdoncaster.com/" target="_blank">Visit Doncaster</a>
           </div>`;
+        resultsContainer.style.display = "block";
         return;
       }
 
-      matches.forEach(f => {
+      showSuggestions(matches.map(m => m.item));
+    }
+
+    function showSuggestions(features) {
+      resultsContainer.innerHTML = "";
+      features.forEach(f => {
         const item = document.createElement("div");
         item.className = "result-item";
         item.textContent = f.properties.name;
@@ -214,18 +229,11 @@
         };
         resultsContainer.appendChild(item);
       });
-
-      resultsContainer.style.display = matches.length > 0 || !query ? "block" : "none";
+      resultsContainer.style.display = "block";
     }
 
-    searchInput.addEventListener('input', () => {
-      updateSearchResults(searchInput.value);
-    });
-
-    searchInput.addEventListener('focus', () => {
-      updateSearchResults();
-    });
-
+    searchInput.addEventListener('input', () => updateSearchResults(searchInput.value));
+    searchInput.addEventListener('focus', () => updateSearchResults(searchInput.value));
     document.addEventListener('click', (e) => {
       if (!document.querySelector('.search-container').contains(e.target)) {
         resultsContainer.style.display = 'none';
@@ -234,7 +242,3 @@
   </script>
 </body>
 </html>
-
-
-
-
