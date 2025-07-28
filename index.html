@@ -286,13 +286,23 @@
 
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
-        if (currentPopup) currentPopup.remove();
       });
 
       map.on('click', layer, e => {
         createPopup(e.features[0], e.lngLat);
       });
     });
+    map.on('click', (e) => {
+  const features = map.queryRenderedFeatures(e.point, {
+    layers: ['city-centre-new', 'across-doncaster']
+  });
+
+  // If the click isn't on a feature, close the popup
+  if (!features.length && currentPopup) {
+    currentPopup.remove();
+    currentPopup = null;
+  }
+});
   });
 </script>
 </body>
