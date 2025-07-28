@@ -275,6 +275,13 @@
       });
     });
   });
+  // Hide suggestions when clicking outside
+document.addEventListener('click', function (event) {
+  const isClickInside = searchInput.contains(event.target) || suggestionsDiv.contains(event.target);
+  if (!isClickInside) {
+    suggestionsDiv.innerHTML = '';
+  }
+});
 </script>
 </body>
 </html>
