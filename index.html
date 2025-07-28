@@ -195,8 +195,17 @@ function createPopup(feature, lngLat, clicked = false) {
 
 function searchAndZoomToFeature(name) {
   const layers = ['city-centre-new', 'across-doncaster'];
+  const layerToSourceLayer = {
+    'city-centre-new': 'City_centre-0z9ge3',
+    'across-doncaster': 'Across_doncaster_2-16g8to'
+  };
+
+  const sourceId = 'composite'; // This is usually the source ID for Mapbox Studio styles
+
   for (let layer of layers) {
-    const features = map.queryRenderedFeatures({ layers: [layer] });
+    const sourceLayer = layerToSourceLayer[layer];
+    const features = map.querySourceFeatures(sourceId, { sourceLayer });
+
     for (let feature of features) {
       if (
         feature.properties &&
@@ -205,13 +214,18 @@ function searchAndZoomToFeature(name) {
       ) {
         const coords = feature.geometry.coordinates;
         map.flyTo({ center: coords, zoom: 14 });
-        createPopup(feature, coords);
+
+        // Slight timeout to ensure map moves before popup opens
+        setTimeout(() => createPopup(feature, coords, true), 300);
+
         return;
       }
     }
   }
-  alert("That location was not found on the map yet. Try zooming in or checking spelling.");
+
+  alert("That location was not found in the map data. Try checking spelling or zooming in.");
 }
+
 
 
   searchInput.addEventListener('input', () => {
