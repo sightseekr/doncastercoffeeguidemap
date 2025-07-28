@@ -159,7 +159,9 @@
 
   const fuse = new Fuse(savedPoints, {
     keys: ['name'],
-    threshold: 0.4
+    threshold: 0.4,
+    ignoreLocation: true,
+    includeScore: true
   });
 
   const searchInput = document.getElementById('search');
@@ -188,20 +190,21 @@
       .addTo(map);
   }
 
-  function handleSearchClick(result) {
-    map.querySourceFeatures('composite', {
-      sourceLayer: 'city-centre-new',
-      filter: ['==', ['get', 'name'], result.name]
-    }).concat(
-      map.querySourceFeatures('composite', {
-        sourceLayer: 'across-doncaster',
-        filter: ['==', ['get', 'name'], result.name]
-      })
-    ).forEach(f => {
-      const center = f.geometry.coordinates;
-      map.flyTo({ center, zoom: 14 });
-      createPopup(f, center);
-    });
+  function searchAndZoomToFeature(name) {
+    const layers = ['city-centre-new', 'across-doncaster'];
+    for (const layer of layers) {
+      const features = map.querySourceFeatures('composite', {
+        sourceLayer: layer,
+        filter: ['==', ['get', 'name'], name]
+      });
+      if (features.length) {
+        const feature = features[0];
+        const coords = feature.geometry.coordinates;
+        map.flyTo({ center: coords, zoom: 14 });
+        createPopup(feature, coords);
+        return;
+      }
+    }
   }
 
   searchInput.addEventListener('input', () => {
@@ -213,7 +216,11 @@
         const div = document.createElement('div');
         div.className = 'suggestion';
         div.textContent = item.name;
-        div.onclick = () => handleSearchClick(item);
+        div.onclick = () => {
+          searchInput.value = item.name;
+          suggestionsDiv.innerHTML = '';
+          searchAndZoomToFeature(item.name);
+        };
         suggestionsDiv.appendChild(div);
       });
       return;
@@ -225,7 +232,11 @@
         const div = document.createElement('div');
         div.className = 'suggestion';
         div.textContent = item.name;
-        div.onclick = () => handleSearchClick(item);
+        div.onclick = () => {
+          searchInput.value = item.name;
+          suggestionsDiv.innerHTML = '';
+          searchAndZoomToFeature(item.name);
+        };
         suggestionsDiv.appendChild(div);
       });
     } else {
@@ -233,6 +244,17 @@
       div.className = 'no-results';
       div.textContent = "Can't find what you're looking for here? Try Google Maps or Visit Doncaster.";
       suggestionsDiv.appendChild(div);
+    }
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const query = searchInput.value.trim();
+      const result = fuse.search(query)[0];
+      if (result) {
+        searchAndZoomToFeature(result.item.name);
+        suggestionsDiv.innerHTML = '';
+      }
     }
   });
 
@@ -260,4 +282,5 @@
 </script>
 </body>
 </html>
+
 
