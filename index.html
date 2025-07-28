@@ -168,6 +168,7 @@
   const suggestionsDiv = document.getElementById('suggestions');
 
   let currentPopup = null;
+  let allFeatures = [];
 
   function createPopup(feature, lngLat) {
     if (currentPopup) currentPopup.remove();
@@ -191,19 +192,11 @@
   }
 
   function searchAndZoomToFeature(name) {
-    const layers = ['city-centre-new', 'across-doncaster'];
-    for (const layer of layers) {
-      const features = map.querySourceFeatures('composite', {
-        sourceLayer: layer,
-        filter: ['==', ['get', 'name'], name]
-      });
-      if (features.length) {
-        const feature = features[0];
-        const coords = feature.geometry.coordinates;
-        map.flyTo({ center: coords, zoom: 14 });
-        createPopup(feature, coords);
-        return;
-      }
+    const feature = allFeatures.find(f => f.properties.name === name);
+    if (feature) {
+      const coords = feature.geometry.coordinates;
+      map.flyTo({ center: coords, zoom: 14 });
+      createPopup(feature, coords);
     }
   }
 
@@ -264,6 +257,9 @@
     const layers = ['city-centre-new', 'across-doncaster'];
 
     layers.forEach(layer => {
+      const features = map.queryRenderedFeatures({ layers: [layer] });
+      allFeatures.push(...features);
+
       map.on('mouseenter', layer, e => {
         map.getCanvas().style.cursor = 'pointer';
         createPopup(e.features[0], e.lngLat);
@@ -282,5 +278,6 @@
 </script>
 </body>
 </html>
+
 
 
