@@ -106,7 +106,7 @@
 <div id="map"></div>
 
 <div class="search-container">
-  <input id="search-input" type="text" placeholder="Search coffee spots..." />
+  <input id="search-input" type="text" placeholder="Search coffee spots..." autocomplete="off" />
   <div id="search-results" class="results" style="display: none;"></div>
 </div>
 
@@ -129,8 +129,6 @@
 
   const layers = ['city-centre-new', 'across-doncaster'];
   let currentPopup = null;
-  let popupEl = null;
-  let overPopup = false;
   let allFeatures = [];
 
   const directionsLinks = {
@@ -176,8 +174,9 @@
 
   map.on('load', () => {
     layers.forEach(layer => {
-      const sourceFeatures = map.querySourceFeatures(layer);
-      sourceFeatures.forEach(f => allFeatures.push(f));
+      map.on('click', layer, (e) => {
+        showPopup(e.features[0], e.lngLat);
+      });
 
       map.on('mouseenter', layer, (e) => {
         map.getCanvas().style.cursor = 'pointer';
@@ -186,36 +185,38 @@
 
       map.on('mouseleave', layer, () => {
         map.getCanvas().style.cursor = '';
-        if (!overPopup && currentPopup) {
+        if (currentPopup) {
           currentPopup.remove();
           currentPopup = null;
         }
       });
+    });
 
-      map.on('click', layer, (e) => {
-        showPopup(e.features[0], e.lngLat);
-      });
+    // Fetch all features from both layers
+    layers.forEach(layer => {
+      const sourceFeatures = map.querySourceFeatures(layer);
+      sourceFeatures.forEach(f => allFeatures.push(f));
     });
   });
 
-  // Search logic
   const searchInput = document.getElementById("search-input");
   const resultsContainer = document.getElementById("search-results");
 
-  searchInput.addEventListener("input", () => {
-    const query = searchInput.value.toLowerCase();
+  function updateSearchResults(query = "") {
+    const bounds = map.getBounds();
+    const lowerQuery = query.toLowerCase();
     resultsContainer.innerHTML = "";
 
-    if (!query) {
-      resultsContainer.style.display = "none";
-      return;
-    }
+    const visibleFeatures = allFeatures.filter(f => {
+      const [lng, lat] = f.geometry.coordinates;
+      return bounds.contains([lng, lat]);
+    });
 
-    const matches = allFeatures.filter(f =>
-      f.properties.name.toLowerCase().includes(query)
+    const matches = visibleFeatures.filter(f =>
+      f.properties.name.toLowerCase().includes(lowerQuery)
     );
 
-    if (matches.length === 0) {
+    if (matches.length === 0 && query) {
       resultsContainer.style.display = "block";
       resultsContainer.innerHTML = `
         <div class="no-results">
@@ -239,11 +240,29 @@
       resultsContainer.appendChild(item);
     });
 
-    resultsContainer.style.display = "block";
+    resultsContainer.style.display = matches.length > 0 ? "block" : "none";
+  }
+
+  // On click, show suggestions for visible places
+  searchInput.addEventListener("focus", () => {
+    updateSearchResults();
+  });
+
+  // On typing, filter them
+  searchInput.addEventListener("input", () => {
+    updateSearchResults(searchInput.value);
+  });
+
+  // Optional: hide on click outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-container")) {
+      resultsContainer.style.display = "none";
+    }
   });
 </script>
 </body>
 </html>
+
 
 
 
