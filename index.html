@@ -167,6 +167,7 @@
   const searchInput = document.getElementById('search');
   const suggestionsDiv = document.getElementById('suggestions');
   let currentPopup = null;
+  let allFeatures = [];
   let popupOpenedByClick = false;
 
 
@@ -194,37 +195,23 @@ function createPopup(feature, lngLat, clicked = false) {
 
 
 function searchAndZoomToFeature(name) {
-  const layers = ['city-centre-new', 'across-doncaster'];
-  const layerToSourceLayer = {
-    'city-centre-new': 'City_centre-0z9ge3',
-    'across-doncaster': 'Across_doncaster_2-16g8to'
-  };
+  for (let feature of allFeatures) {
+    if (
+      feature.properties &&
+      feature.properties.name &&
+      feature.properties.name.toLowerCase().includes(name.toLowerCase())
+    ) {
+      const coords = feature.geometry.coordinates;
+      map.flyTo({ center: coords, zoom: 14 });
 
-  const sourceId = 'composite'; // This is usually the source ID for Mapbox Studio styles
-
-  for (let layer of layers) {
-    const sourceLayer = layerToSourceLayer[layer];
-    const features = map.querySourceFeatures(sourceId, { sourceLayer });
-
-    for (let feature of features) {
-      if (
-        feature.properties &&
-        feature.properties.name &&
-        feature.properties.name.toLowerCase().includes(name.toLowerCase())
-      ) {
-        const coords = feature.geometry.coordinates;
-        map.flyTo({ center: coords, zoom: 14 });
-
-        // Slight timeout to ensure map moves before popup opens
-        setTimeout(() => createPopup(feature, coords, true), 300);
-
-        return;
-      }
+      setTimeout(() => createPopup(feature, coords, true), 300);
+      return;
     }
   }
 
-  alert("That location was not found in the map data. Try checking spelling or zooming in.");
+  alert("That location was not found. Try zooming in or checking spelling.");
 }
+
 
 
 
@@ -288,44 +275,49 @@ function searchAndZoomToFeature(name) {
     }
   });
 
-  map.on('load', () => {
-    const layers = ['city-centre-new', 'across-doncaster'];
-    const layerToSourceLayer = {
-      'city-centre-new': 'City_centre-0z9ge3',
-      'across-doncaster': 'Across_doncaster_2-16g8to'
-    };
+map.on('load', () => {
+  const layers = ['city-centre-new', 'across-doncaster'];
+  const layerToSourceLayer = {
+    'city-centre-new': 'City_centre-0z9ge3',
+    'across-doncaster': 'Across_doncaster_2-16g8to'
+  };
 
-    layers.forEach(layer => {
-      const sourceLayer = layerToSourceLayer[layer];
-      const sourceId = Object.keys(map.getStyle().sources)[0];
+  const sourceId = 'composite';
 
-        map.on('mouseenter', layer, e => {
-    map.getCanvas().style.cursor = 'pointer';
-    createPopup(e.features[0], e.lngLat, false); // hover
+  // Collect all features from both layers after load
+  layers.forEach(layer => {
+    const sourceLayer = layerToSourceLayer[layer];
+    const features = map.querySourceFeatures(sourceId, { sourceLayer });
+    allFeatures.push(...features);
   });
 
-  map.on('mouseleave', layer, () => {
-    map.getCanvas().style.cursor = '';
-    if (!popupOpenedByClick && currentPopup) {
-      currentPopup.remove();
-      currentPopup = null;
-    }
-     });
+  // Hover popup
+  layers.forEach(layer => {
+    map.on('mouseenter', layer, e => {
+      map.getCanvas().style.cursor = 'pointer';
+      createPopup(e.features[0], e.lngLat, false);
+    });
 
-    // Global click: close popup if user clicks on empty map space
-    map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: ['city-centre-new', 'across-doncaster']
-      });
-
-      if (!features.length && currentPopup) {
+    map.on('mouseleave', layer, () => {
+      map.getCanvas().style.cursor = '';
+      if (!popupOpenedByClick && currentPopup) {
         currentPopup.remove();
         currentPopup = null;
-        popupOpenedByClick = false;
       }
     });
   });
+
+  // Global click: close popup if user clicks on empty map space
+  map.on('click', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers });
+    if (!features.length && currentPopup) {
+      currentPopup.remove();
+      currentPopup = null;
+      popupOpenedByClick = false;
+    }
+  });
 });
+
 </script>
 </body>
 </html>
