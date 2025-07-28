@@ -119,27 +119,43 @@
     showUserHeading: true
   }));
 
-  const savedPoints = [...document.querySelectorAll("[data-name]")].map(el => ({ name: el.dataset.name })); // fallback
+  const savedPoints = [
+    { name: "West Street Coffee" },
+    { name: "Café 1910 (In Danum Library, Gallery and Museum)" },
+    { name: "Bone Idle Lounge" },
+    { name: "Da Leo Restaurant" },
+    { name: "Doncaster Tourist Information Centre" },
+    { name: "The Glass Strawberry" },
+    { name: "Banco Coffee Co" },
+    { name: "Jazz Cafe" },
+    { name: "Old man Staveley's coffee co" },
+    { name: "Back in Time Café" },
+    { name: "Boston & Co Bentley Pavilion" },
+    { name: "Jimmy Piggs Coffee House" },
+    { name: "Cornerstone Coffee" },
+    { name: "Highfield Coffee Social" },
+    { name: "TWEED at Wadworth" },
+    { name: "Feast Bawtry" }
+  ];
 
   const directionsLinks = {
-  "West Street Coffee": "https://www.google.com/maps?cid=7732098197170659430",
-  "Café 1910 (In Danum Library, Gallery and Museum)": "https://www.google.com/maps?cid=1008549081973229459",
-  "Bone Idle Lounge": "https://google.com/maps?cid=11035181184400722709",
-  "Da Leo Restaurant": "https://www.google.com/maps?cid=6913375424484086838",
-  "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122",
-  "The Glass Strawberry": "https://www.google.com/maps?cid=17678315068369981247",
-  "Banco Coffee Co": "https://www.google.com/maps?cid=1769371057472287012",
-  "Jazz Cafe": "https://www.google.com/maps?cid=14635295943506975263",
-  "Old man Staveley's coffee co": "https://www.google.com/maps?cid=11699623048919577819",
-  "Back in Time Café": "http://google.com/maps?cid=10559689921745810730",
-  "Boston & Co Bentley Pavilion": "https://www.google.com/maps?cid=9765442256895214233",
-  "Jimmy Piggs Coffee House": "https://www.google.com/maps?cid=9568668619399891490",
-  "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
-  "Highfield Coffee Social": "https://www.google.com/maps?cid=14653791595216298550",
-  "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
-  "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862"
-};
-
+    "West Street Coffee": "https://www.google.com/maps?cid=7732098197170659430",
+    "Cafe 1910 (In Danum Library, Gallery and Museum)": "https://www.google.com/maps?cid=1008549081973229459",
+    "Bone Idle Lounge": "https://google.com/maps?cid=11035181184400722709",
+    "Da Leo Restaurant": "https://www.google.com/maps?cid=6913375424484086838",
+    "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122",
+    "The Glass Strawberry": "https://www.google.com/maps?cid=17678315068369981247",
+    "Banco Coffee Co": "https://www.google.com/maps?cid=1769371057472287012",
+    "Jazz Cafe": "https://www.google.com/maps?cid=14635295943506975263",
+    "Old man Staveley's coffee co": "https://www.google.com/maps?cid=11699623048919577819",
+    "Back in time cafe": "http://google.com/maps?cid=10559689921745810730",
+    "Boston & Co Bentley Pavilion": "https://www.google.com/maps?cid=9765442256895214233",
+    "Jimmy Piggs Coffee House": "https://www.google.com/maps?cid=9568668619399891490",
+    "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
+    "Highfield Coffee Social": "https://www.google.com/maps?cid=14653791595216298550",
+    "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
+    "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862"
+  };
 
   const fuse = new Fuse(savedPoints, {
     keys: ['name'],
@@ -150,13 +166,10 @@
 
   const searchInput = document.getElementById('search');
   const suggestionsDiv = document.getElementById('suggestions');
-
   let currentPopup = null;
-  let allFeatures = [];
 
   function createPopup(feature, lngLat) {
     if (currentPopup) currentPopup.remove();
-
     const name = feature.properties.name || "No title";
     const description = feature.properties.description || "No description";
     const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
@@ -176,20 +189,45 @@
   }
 
   function searchAndZoomToFeature(name) {
-    const feature = allFeatures.find(f => f.properties.name === name);
-    if (feature) {
-      const coords = feature.geometry.coordinates;
-      map.flyTo({ center: coords, zoom: 14 });
-      createPopup(feature, coords);
+    const layers = ['city-centre-new', 'across-doncaster'];
+    for (let layer of layers) {
+      const features = map.queryRenderedFeatures({ layers: [layer] });
+      for (let feature of features) {
+        if (
+          feature.properties &&
+          feature.properties.name &&
+          feature.properties.name.toLowerCase().includes(name.toLowerCase())
+        ) {
+          const coords = feature.geometry.coordinates;
+          map.flyTo({ center: coords, zoom: 14 });
+          createPopup(feature, coords);
+          return;
+        }
+      }
     }
+    alert("That location was not found on the map yet. Try zooming in or checking spelling.");
   }
 
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
     suggestionsDiv.innerHTML = '';
 
-    const results = query ? fuse.search(query) : savedPoints.map(item => ({ item }));
+    if (!query) {
+      savedPoints.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = item.name;
+        div.onclick = () => {
+          searchInput.value = item.name;
+          suggestionsDiv.innerHTML = '';
+          searchAndZoomToFeature(item.name);
+        };
+        suggestionsDiv.appendChild(div);
+      });
+      return;
+    }
 
+    const results = fuse.search(query);
     if (results.length) {
       results.forEach(({ item }) => {
         const div = document.createElement('div');
@@ -205,7 +243,7 @@
     } else {
       const div = document.createElement('div');
       div.className = 'no-results';
-      div.textContent = "Can't find what you're looking for here? Try Google Maps or Visit Doncaster.";
+      div.textContent = "Can't find what you're looking for? Try Google Maps or Visit Doncaster.";
       suggestionsDiv.appendChild(div);
     }
   });
@@ -239,11 +277,7 @@
 
     layers.forEach(layer => {
       const sourceLayer = layerToSourceLayer[layer];
-      if (!sourceLayer) return;
-
       const sourceId = Object.keys(map.getStyle().sources)[0];
-      const features = map.querySourceFeatures(sourceId, { sourceLayer });
-      allFeatures.push(...features);
 
       map.on('mouseenter', layer, e => {
         map.getCanvas().style.cursor = 'pointer';
@@ -263,6 +297,7 @@
 </script>
 </body>
 </html>
+
 
 
 
