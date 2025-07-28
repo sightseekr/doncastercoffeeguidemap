@@ -257,8 +257,37 @@
     const layers = ['city-centre-new', 'across-doncaster'];
 
     layers.forEach(layer => {
-      const features = map.queryRenderedFeatures({ layers: [layer] });
-      allFeatures.push(...features);
+      const layerToSourceLayer = {
+  'city-centre-new': 'City_centre-0z9ge3',
+  'across-doncaster': 'Across_doncaster_2-16g8to' 
+};
+
+layers.forEach(layer => {
+  const sourceLayer = layerToSourceLayer[layer];
+
+  if (!sourceLayer) return; // Skip if we don't know the source layer
+
+  const features = map.querySourceFeatures(map.getStyle().sources['composite'] ? 'composite' : Object.keys(map.getStyle().sources)[0], {
+    sourceLayer
+  });
+
+  allFeatures.push(...features);
+
+  map.on('mouseenter', layer, e => {
+    map.getCanvas().style.cursor = 'pointer';
+    createPopup(e.features[0], e.lngLat);
+  });
+
+  map.on('mouseleave', layer, () => {
+    map.getCanvas().style.cursor = '';
+    if (currentPopup) currentPopup.remove();
+  });
+
+  map.on('click', layer, e => {
+    createPopup(e.features[0], e.lngLat);
+  });
+});
+
 
       map.on('mouseenter', layer, e => {
         map.getCanvas().style.cursor = 'pointer';
