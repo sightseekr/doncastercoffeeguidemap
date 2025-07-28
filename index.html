@@ -284,12 +284,24 @@ map.on('load', () => {
 
   const sourceId = 'composite';
 
-  // Collect all features from both layers after load
+// Collect all features from all loaded tiles after idle
+map.once('idle', () => {
   layers.forEach(layer => {
     const sourceLayer = layerToSourceLayer[layer];
-    const features = map.querySourceFeatures(sourceId, { sourceLayer });
-    allFeatures.push(...features);
+    const tiles = map.style.sourceCaches[sourceId]._tiles;
+
+    for (let tileId in tiles) {
+      const tile = tiles[tileId];
+      if (tile && tile.featureIndex) {
+        const tileFeatures = tile.featureIndex.features[sourceLayer];
+        if (tileFeatures) {
+          tileFeatures.forEach(f => allFeatures.push(f));
+        }
+      }
+    }
   });
+});
+
 
   // Hover popup
   layers.forEach(layer => {
