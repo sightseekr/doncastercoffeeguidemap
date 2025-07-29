@@ -10,7 +10,6 @@
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-
     .mapboxgl-popup-content {
       background-color: rgba(255, 255, 255, 1) !important;
       border-radius: 6px;
@@ -19,19 +18,16 @@
       max-width: 220px;
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
-
     .custom-popup strong {
       font-weight: bold;
       display: block;
       margin-bottom: 4px;
     }
-
     .custom-popup p {
       font-size: 0.85em;
       font-style: italic;
       margin: 0 0 6px;
     }
-
     .custom-popup .directions-btn {
       background-color: #EA736B;
       color: white;
@@ -45,11 +41,9 @@
       gap: 5px;
       text-decoration: none;
     }
-
     .custom-popup .directions-btn:hover {
       background-color: #d8655e;
     }
-
     #search-container {
       position: absolute;
       top: 10px;
@@ -59,7 +53,6 @@
       width: 90%;
       max-width: 400px;
     }
-
     #search {
       width: 100%;
       padding: 8px 12px;
@@ -67,7 +60,6 @@
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-
     #suggestions {
       background: white;
       border: 1px solid #ccc;
@@ -78,16 +70,13 @@
       width: 100%;
       z-index: 2;
     }
-
     .suggestion {
       padding: 8px 12px;
       cursor: pointer;
     }
-
     .suggestion:hover {
       background: #f0f0f0;
     }
-
     .no-results {
       padding: 8px 12px;
       color: #666;
@@ -172,112 +161,88 @@
   let allFeatures = [];
   let popupOpenedByClick = false;
 
-
-function createPopup(feature, lngLat, clicked = false) {
-  if (currentPopup) currentPopup.remove();
-  popupOpenedByClick = clicked;
-
-  const name = feature.properties.name || "No title";
-  const description = feature.properties.description || "No description";
-  const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
-
-  currentPopup = new mapboxgl.Popup({ closeButton: false })
-    .setLngLat(lngLat)
-    .setHTML(`
-      <div class="custom-popup">
-        <strong>${name}</strong>
-        <p>${description}</p>
-        <a href="${directions}" class="directions-btn" target="_blank">
-          <span>Directions</span> <span>📍</span>
-        </a>
-      </div>
-    `)
-    .addTo(map);
-}
-
-
-function searchAndZoomToFeature(name) {
-  console.log(`Searching for: "${name}"`);
-  console.log(`Total features available: ${allFeatures.length}`);
-  
-  // First, try to find in loaded map features
-  for (let feature of allFeatures) {
-    if (
-      feature.properties &&
-      feature.properties.name &&
-      feature.properties.name.toLowerCase().includes(name.toLowerCase())
-    ) {
-      console.log(`Found feature: ${feature.properties.name}`);
-      const coords = feature.geometry.coordinates;
-      map.flyTo({ center: coords, zoom: 14 });
-
-      setTimeout(() => createPopup(feature, coords, true), 300);
-      return;
-    }
+  // Utility to detect mobile
+  function isMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
-  // Fallback: if not found in loaded features, try to query rendered features by name
-  console.log('Feature not found in loaded data, trying rendered features...');
-  
-  // Query all currently rendered features
-  const allRenderedFeatures = map.queryRenderedFeatures();
-  for (let feature of allRenderedFeatures) {
-    if (
-      feature.properties &&
-      feature.properties.name &&
-      feature.properties.name.toLowerCase().includes(name.toLowerCase())
-    ) {
-      console.log(`Found in rendered features: ${feature.properties.name}`);
-      const coords = feature.geometry.coordinates;
-      map.flyTo({ center: coords, zoom: 14 });
-      setTimeout(() => createPopup(feature, coords, true), 300);
-      return;
-    }
+  function createPopup(feature, lngLat, clicked = false) {
+    if (currentPopup) currentPopup.remove();
+    popupOpenedByClick = clicked;
+
+    const name = feature.properties.name || "No title";
+    const description = feature.properties.description || "No description";
+    const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+
+    currentPopup = new mapboxgl.Popup({ closeButton: false })
+      .setLngLat(lngLat)
+      .setHTML(`
+        <div class="custom-popup">
+          <strong>${name}</strong>
+          <p>${description}</p>
+          <a href="${directions}" class="directions-btn" target="_blank">
+            <span>Directions</span> <span>📍</span>
+          </a>
+        </div>
+      `)
+      .addTo(map);
   }
 
-  // Final fallback: search by coordinates if the name is in our savedPoints list
-  console.log('Trying final fallback search...');
-  const matchingPoint = savedPoints.find(point => 
-    point.name.toLowerCase().includes(name.toLowerCase())
-  );
-  
-  if (matchingPoint) {
-    console.log(`Found in savedPoints: ${matchingPoint.name}`);
-    // Try to find this point by forcing a map pan and search
-    const layers = ['city-centre-new', 'across-doncaster'];
-    
-    // Search in a wider area
-    map.fitBounds([[-1.5, 53.3], [-0.8, 53.7]], { padding: 50 });
-    
-    setTimeout(() => {
-      const features = map.queryRenderedFeatures({ layers });
-      const foundFeature = features.find(f => 
-        f.properties && f.properties.name && 
-        f.properties.name.toLowerCase().includes(name.toLowerCase())
-      );
-      
-      if (foundFeature) {
-        const coords = foundFeature.geometry.coordinates;
+  function searchAndZoomToFeature(name) {
+    // ...existing code unchanged...
+    for (let feature of allFeatures) {
+      if (
+        feature.properties &&
+        feature.properties.name &&
+        feature.properties.name.toLowerCase().includes(name.toLowerCase())
+      ) {
+        const coords = feature.geometry.coordinates;
         map.flyTo({ center: coords, zoom: 14 });
-        setTimeout(() => createPopup(foundFeature, coords, true), 300);
-      } else {
-        alert(`Sorry, "${name}" was not found on the map. It may be outside the current data area or spelled differently.`);
+        setTimeout(() => createPopup(feature, coords, true), 300);
+        return;
       }
-    }, 1000);
-    return;
+    }
+    const allRenderedFeatures = map.queryRenderedFeatures();
+    for (let feature of allRenderedFeatures) {
+      if (
+        feature.properties &&
+        feature.properties.name &&
+        feature.properties.name.toLowerCase().includes(name.toLowerCase())
+      ) {
+        const coords = feature.geometry.coordinates;
+        map.flyTo({ center: coords, zoom: 14 });
+        setTimeout(() => createPopup(feature, coords, true), 300);
+        return;
+      }
+    }
+    const matchingPoint = savedPoints.find(point => 
+      point.name.toLowerCase().includes(name.toLowerCase())
+    );
+    if (matchingPoint) {
+      const layers = ['city-centre-new', 'across-doncaster'];
+      map.fitBounds([[-1.5, 53.3], [-0.8, 53.7]], { padding: 50 });
+      setTimeout(() => {
+        const features = map.queryRenderedFeatures({ layers });
+        const foundFeature = features.find(f => 
+          f.properties && f.properties.name && 
+          f.properties.name.toLowerCase().includes(name.toLowerCase())
+        );
+        if (foundFeature) {
+          const coords = foundFeature.geometry.coordinates;
+          map.flyTo({ center: coords, zoom: 14 });
+          setTimeout(() => createPopup(foundFeature, coords, true), 300);
+        } else {
+          alert(`Sorry, "${name}" was not found on the map. It may be outside the current data area or spelled differently.`);
+        }
+      }, 1000);
+      return;
+    }
+    alert(`"${name}" was not found. Please check the spelling or try a different search term.`);
   }
-
-  alert(`"${name}" was not found. Please check the spelling or try a different search term.`);
-  console.log('Search failed - feature not found anywhere');
-}
-
-
-
 
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
     suggestionsDiv.innerHTML = '';
-
     if (!query) {
       savedPoints.forEach(item => {
         const div = document.createElement('div');
@@ -292,7 +257,6 @@ function searchAndZoomToFeature(name) {
       });
       return;
     }
-
     const results = fuse.search(query);
     if (results.length) {
       results.forEach(({ item }) => {
@@ -334,136 +298,98 @@ function searchAndZoomToFeature(name) {
     }
   });
 
-map.on('load', () => {
-  const layers = ['city-centre-new', 'across-doncaster'];
-  const layerToSourceLayer = {
-    'city-centre-new': 'City_centre-0z9ge3',
-    'across-doncaster': 'Across_doncaster_2-16g8to'
-  };
+  map.on('load', () => {
+    const layers = ['city-centre-new', 'across-doncaster'];
+    const layerToSourceLayer = {
+      'city-centre-new': 'City_centre-0z9ge3',
+      'across-doncaster': 'Across_doncaster_2-16g8to'
+    };
+    const sourceId = 'composite';
 
-  const sourceId = 'composite';
-
-// Function to load all features from the source layers
-function loadAllFeatures() {
-  console.log('Starting to load all features...');
-  
-  layers.forEach(layer => {
-    const sourceLayer = layerToSourceLayer[layer];
-    
-    try {
-      // Query all source features for this layer (not just rendered ones)
-      const sourceFeatures = map.querySourceFeatures(sourceId, {
-        sourceLayer: sourceLayer
-      });
-      
-      console.log(`Found ${sourceFeatures.length} features in ${sourceLayer}`);
-      
-      sourceFeatures.forEach(feature => {
-        // Check for duplicates before adding
-        const isDuplicate = allFeatures.some(existing => 
-          existing.properties && feature.properties &&
-          existing.properties.name === feature.properties.name
-        );
-        if (!isDuplicate && feature.properties && feature.properties.name) {
-          allFeatures.push(feature);
-        }
-      });
-    } catch (error) {
-      console.log(`Error querying source features for ${layer}:`, error);
-      
-      // Fallback: try to get rendered features with a large bbox
-      const renderedFeatures = map.queryRenderedFeatures({ layers: [layer] });
-      renderedFeatures.forEach(feature => {
-        const isDuplicate = allFeatures.some(existing => 
-          existing.properties && feature.properties &&
-          existing.properties.name === feature.properties.name
-        );
-        if (!isDuplicate && feature.properties && feature.properties.name) {
-          allFeatures.push(feature);
+    // Function to load all features from the source layers
+    function loadAllFeatures() {
+      layers.forEach(layer => {
+        const sourceLayer = layerToSourceLayer[layer];
+        try {
+          const sourceFeatures = map.querySourceFeatures(sourceId, {
+            sourceLayer: sourceLayer
+          });
+          sourceFeatures.forEach(feature => {
+            const isDuplicate = allFeatures.some(existing => 
+              existing.properties && feature.properties &&
+              existing.properties.name === feature.properties.name
+            );
+            if (!isDuplicate && feature.properties && feature.properties.name) {
+              allFeatures.push(feature);
+            }
+          });
+        } catch (error) {
+          const renderedFeatures = map.queryRenderedFeatures({ layers: [layer] });
+          renderedFeatures.forEach(feature => {
+            const isDuplicate = allFeatures.some(existing => 
+              existing.properties && feature.properties &&
+              existing.properties.name === feature.properties.name
+            );
+            if (!isDuplicate && feature.properties && feature.properties.name) {
+              allFeatures.push(feature);
+            }
+          });
         }
       });
     }
-  });
-  
-  console.log(`Total features loaded for search: ${allFeatures.length}`);
-  
-  // Log feature names for debugging
-  const featureNames = allFeatures.map(f => f.properties.name).filter(Boolean);
-  console.log('Available features:', featureNames);
-}
 
-// Load features after map data is loaded
-map.on('data', (e) => {
-  if (e.dataType === 'source' && e.sourceId === sourceId) {
-    // Clear existing features to avoid duplicates on data reload
-    allFeatures = [];
-    loadAllFeatures();
-  }
-});
-
-// Also load features when map becomes idle (as backup)
-map.once('idle', () => {
-  if (allFeatures.length === 0) {
-    loadAllFeatures();
-  }
-});
-
-
-  // Hover popup
-  layers.forEach(layer => {
-    map.on('mouseenter', layer, e => {
-      map.getCanvas().style.cursor = 'pointer';
-      createPopup(e.features[0], e.lngLat, false);
+    map.on('data', (e) => {
+      if (e.dataType === 'source' && e.sourceId === sourceId) {
+        allFeatures = [];
+        loadAllFeatures();
+      }
     });
 
-map.on('mouseleave', layer, (e) => {
-  map.getCanvas().style.cursor = '';
+    map.once('idle', () => {
+      if (allFeatures.length === 0) {
+        loadAllFeatures();
+      }
+    });
 
-  // Use a small delay to see if mouse entered the popup
-  setTimeout(() => {
-    const popupEl = document.querySelector('.mapboxgl-popup-content');
-    if (!popupEl) return;
+    // --- POPUP LOGIC STARTS HERE ---
 
-    const rect = popupEl.getBoundingClientRect();
-    const { clientX, clientY } = e.originalEvent;
+    // Only add hover popups if not on mobile
+    if (!isMobile()) {
+      layers.forEach(layer => {
+        map.on('mouseenter', layer, e => {
+          map.getCanvas().style.cursor = 'pointer';
+          createPopup(e.features[0], e.lngLat, false);
+        });
+        map.on('mouseleave', layer, () => {
+          map.getCanvas().style.cursor = '';
+          if (!popupOpenedByClick && currentPopup) {
+            currentPopup.remove();
+            currentPopup = null;
+          }
+        });
+      });
+    }
 
-    // If the mouse is not over the popup, close it
-    if (
-      clientX < rect.left || clientX > rect.right ||
-      clientY < rect.top || clientY > rect.bottom
-    ) {
-      if (!popupOpenedByClick && currentPopup) {
+    // Always add click/tap popups
+    layers.forEach(layer => {
+      map.on('click', layer, e => {
+        if (currentPopup) currentPopup.remove();
+        createPopup(e.features[0], e.lngLat, true);
+      });
+    });
+
+    // Global click: close popup if user clicks on empty map space
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers });
+      if (!features.length && currentPopup) {
         currentPopup.remove();
         currentPopup = null;
+        popupOpenedByClick = false;
       }
-    }
-  }, 100);
-});
-    // Add click-to-close on popup itself
-document.addEventListener('click', (e) => {
-  const popupContent = document.querySelector('.mapboxgl-popup-content');
-  if (popupContent && popupContent.contains(e.target)) {
-    if (popupOpenedByClick && currentPopup) {
-      currentPopup.remove();
-      currentPopup = null;
-      popupOpenedByClick = false;
-    }
-  }
-});
-  });
+    });
 
-  // Global click: close popup if user clicks on empty map space
-  map.on('click', (e) => {
-    const features = map.queryRenderedFeatures(e.point, { layers });
-    if (!features.length && currentPopup) {
-      currentPopup.remove();
-      currentPopup = null;
-      popupOpenedByClick = false;
-    }
+    // --- POPUP LOGIC ENDS HERE ---
   });
-});
-
 </script>
 </body>
 </html>
-
