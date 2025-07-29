@@ -195,12 +195,17 @@ function createPopup(feature, lngLat, clicked = false) {
 
 
 function searchAndZoomToFeature(name) {
+  console.log(`Searching for: "${name}"`);
+  console.log(`Total features available: ${allFeatures.length}`);
+  
+  // First, try to find in loaded map features
   for (let feature of allFeatures) {
     if (
       feature.properties &&
       feature.properties.name &&
       feature.properties.name.toLowerCase().includes(name.toLowerCase())
     ) {
+      console.log(`Found feature: ${feature.properties.name}`);
       const coords = feature.geometry.coordinates;
       map.flyTo({ center: coords, zoom: 14 });
 
@@ -209,7 +214,59 @@ function searchAndZoomToFeature(name) {
     }
   }
 
-  alert("That location was not found. Try zooming in or checking spelling.");
+  // Fallback: if not found in loaded features, try to query rendered features by name
+  console.log('Feature not found in loaded data, trying rendered features...');
+  
+  // Query all currently rendered features
+  const allRenderedFeatures = map.queryRenderedFeatures();
+  for (let feature of allRenderedFeatures) {
+    if (
+      feature.properties &&
+      feature.properties.name &&
+      feature.properties.name.toLowerCase().includes(name.toLowerCase())
+    ) {
+      console.log(`Found in rendered features: ${feature.properties.name}`);
+      const coords = feature.geometry.coordinates;
+      map.flyTo({ center: coords, zoom: 14 });
+      setTimeout(() => createPopup(feature, coords, true), 300);
+      return;
+    }
+  }
+
+  // Final fallback: search by coordinates if the name is in our savedPoints list
+  console.log('Trying final fallback search...');
+  const matchingPoint = savedPoints.find(point => 
+    point.name.toLowerCase().includes(name.toLowerCase())
+  );
+  
+  if (matchingPoint) {
+    console.log(`Found in savedPoints: ${matchingPoint.name}`);
+    // Try to find this point by forcing a map pan and search
+    const layers = ['city-centre-new', 'across-doncaster'];
+    
+    // Search in a wider area
+    map.fitBounds([[-1.5, 53.3], [-0.8, 53.7]], { padding: 50 });
+    
+    setTimeout(() => {
+      const features = map.queryRenderedFeatures({ layers });
+      const foundFeature = features.find(f => 
+        f.properties && f.properties.name && 
+        f.properties.name.toLowerCase().includes(name.toLowerCase())
+      );
+      
+      if (foundFeature) {
+        const coords = foundFeature.geometry.coordinates;
+        map.flyTo({ center: coords, zoom: 14 });
+        setTimeout(() => createPopup(foundFeature, coords, true), 300);
+      } else {
+        alert(`Sorry, "${name}" was not found on the map. It may be outside the current data area or spelled differently.`);
+      }
+    }, 1000);
+    return;
+  }
+
+  alert(`"${name}" was not found. Please check the spelling or try a different search term.`);
+  console.log('Search failed - feature not found anywhere');
 }
 
 
@@ -284,22 +341,69 @@ map.on('load', () => {
 
   const sourceId = 'composite';
 
-// Collect all features from all loaded tiles after idle
-map.once('idle', () => {
+// Function to load all features from the source layers
+function loadAllFeatures() {
+  console.log('Starting to load all features...');
+  
   layers.forEach(layer => {
     const sourceLayer = layerToSourceLayer[layer];
-    const tiles = map.style.sourceCaches[sourceId]._tiles;
-
-    for (let tileId in tiles) {
-      const tile = tiles[tileId];
-      if (tile && tile.featureIndex) {
-        const tileFeatures = tile.featureIndex.features[sourceLayer];
-        if (tileFeatures) {
-          tileFeatures.forEach(f => allFeatures.push(f));
+    
+    try {
+      // Query all source features for this layer (not just rendered ones)
+      const sourceFeatures = map.querySourceFeatures(sourceId, {
+        sourceLayer: sourceLayer
+      });
+      
+      console.log(`Found ${sourceFeatures.length} features in ${sourceLayer}`);
+      
+      sourceFeatures.forEach(feature => {
+        // Check for duplicates before adding
+        const isDuplicate = allFeatures.some(existing => 
+          existing.properties && feature.properties &&
+          existing.properties.name === feature.properties.name
+        );
+        if (!isDuplicate && feature.properties && feature.properties.name) {
+          allFeatures.push(feature);
         }
-      }
+      });
+    } catch (error) {
+      console.log(`Error querying source features for ${layer}:`, error);
+      
+      // Fallback: try to get rendered features with a large bbox
+      const renderedFeatures = map.queryRenderedFeatures({ layers: [layer] });
+      renderedFeatures.forEach(feature => {
+        const isDuplicate = allFeatures.some(existing => 
+          existing.properties && feature.properties &&
+          existing.properties.name === feature.properties.name
+        );
+        if (!isDuplicate && feature.properties && feature.properties.name) {
+          allFeatures.push(feature);
+        }
+      });
     }
   });
+  
+  console.log(`Total features loaded for search: ${allFeatures.length}`);
+  
+  // Log feature names for debugging
+  const featureNames = allFeatures.map(f => f.properties.name).filter(Boolean);
+  console.log('Available features:', featureNames);
+}
+
+// Load features after map data is loaded
+map.on('data', (e) => {
+  if (e.dataType === 'source' && e.sourceId === sourceId) {
+    // Clear existing features to avoid duplicates on data reload
+    allFeatures = [];
+    loadAllFeatures();
+  }
+});
+
+// Also load features when map becomes idle (as backup)
+map.once('idle', () => {
+  if (allFeatures.length === 0) {
+    loadAllFeatures();
+  }
 });
 
 
