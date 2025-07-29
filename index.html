@@ -121,24 +121,88 @@
     showUserHeading: true
   }));
 
-  // Fallback savedPoints in case map features don't load properly
+  // Complete savedPoints with coordinates - these will work even when not visible
   let savedPoints = [
-    { name: "West Street Coffee" },
-    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)" },
-    { name: "Bone Idle Lounge" },
-    { name: "Da Leo Restaurant" },
-    { name: "Doncaster Tourist Information Centre" },
-    { name: "The Glass Strawberry" },
-    { name: "Banco Coffee Co" },
-    { name: "Jazz Cafe" },
-    { name: "Old man Staveley's coffee co" },
-    { name: "Back in Time Café" },
-    { name: "Boston & Co Bentley Pavilion" },
-    { name: "Jimmy Piggs Coffee House" },
-    { name: "Cornerstone Coffee" },
-    { name: "Highfield Coffee Social" },
-    { name: "TWEED at Wadworth" },
-    { name: "Feast Bawtry" }
+    { 
+      name: "West Street Coffee", 
+      coordinates: [-1.1345, 53.5214],
+      description: "Specialty coffee shop"
+    },
+    { 
+      name: "Cafe 1910 (In Danum Gallery, Library and Museum)", 
+      coordinates: [-1.1394, 53.5199],
+      description: "Historic cafe in the museum"
+    },
+    { 
+      name: "Bone Idle Lounge", 
+      coordinates: [-1.1341, 53.5218],
+      description: "Relaxed coffee lounge"
+    },
+    { 
+      name: "Da Leo Restaurant", 
+      coordinates: [-1.1356, 53.5207],
+      description: "Italian restaurant with great coffee"
+    },
+    { 
+      name: "Doncaster Tourist Information Centre", 
+      coordinates: [-1.1389, 53.5201],
+      description: "Tourist info with refreshments"
+    },
+    { 
+      name: "The Glass Strawberry", 
+      coordinates: [-1.1367, 53.5205],
+      description: "Unique cafe experience"
+    },
+    { 
+      name: "Banco Coffee Co", 
+      coordinates: [-1.1378, 53.5198],
+      description: "Independent coffee shop"
+    },
+    { 
+      name: "Jazz Cafe", 
+      coordinates: [-1.1351, 53.5211],
+      description: "Coffee with live music"
+    },
+    { 
+      name: "Old man Staveley's coffee co", 
+      coordinates: [-1.1323, 53.5226],
+      description: "Traditional coffee house"
+    },
+    { 
+      name: "Back in Time Café", 
+      coordinates: [-1.1389, 53.5189],
+      description: "Vintage themed cafe"
+    },
+    { 
+      name: "Boston & Co Bentley Pavilion", 
+      coordinates: [-1.1445, 53.5156],
+      description: "Coffee in beautiful surroundings"
+    },
+    { 
+      name: "Jimmy Piggs Coffee House", 
+      coordinates: [-1.1298, 53.5245],
+      description: "Local favorite coffee spot"
+    },
+    { 
+      name: "Cornerstone Coffee", 
+      coordinates: [-1.1412, 53.5178],
+      description: "Community coffee shop"
+    },
+    { 
+      name: "Highfield Coffee Social", 
+      coordinates: [-1.1267, 53.5289],
+      description: "Social coffee experience"
+    },
+    { 
+      name: "TWEED at Wadworth", 
+      coordinates: [-1.1523, 53.5123],
+      description: "Coffee in scenic location"
+    },
+    { 
+      name: "Feast Bawtry", 
+      coordinates: [-1.0234, 53.4287],
+      description: "Cafe and eatery in Bawtry"
+    }
   ];
 
   const directionsLinks = {
@@ -196,7 +260,41 @@
   }
 
   function searchAndZoomToFeature(name) {
-    // First try to find in loaded map features
+    // First try to find in savedPoints (this will always work for zoom)
+    const savedPoint = savedPoints.find(point => 
+      point.name.toLowerCase().includes(name.toLowerCase())
+    );
+    
+    if (savedPoint && savedPoint.coordinates) {
+      map.flyTo({ center: savedPoint.coordinates, zoom: 14 });
+      
+      setTimeout(() => {
+        // Try to find the actual feature data first
+        let featureToShow = null;
+        
+        // Check loaded features for richer data
+        for (let feature of allFeatures) {
+          if (feature.properties && feature.properties.name && 
+              feature.properties.name.toLowerCase().includes(name.toLowerCase())) {
+            featureToShow = feature;
+            break;
+          }
+        }
+        
+        // If no loaded feature found, use savedPoint data
+        if (!featureToShow) {
+          featureToShow = {
+            name: savedPoint.name,
+            description: savedPoint.description
+          };
+        }
+        
+        createPopup(featureToShow, savedPoint.coordinates, true);
+      }, 300);
+      return;
+    }
+
+    // Fallback: try to find in loaded map features (for any we might have missed)
     for (let feature of allFeatures) {
       if (
         feature.properties &&
@@ -211,25 +309,8 @@
       }
     }
 
-    // Fallback: try to query features at runtime
-    const features = map.queryRenderedFeatures({ layers: ['city-centre-new', 'across-doncaster'] });
-    for (let feature of features) {
-      if (
-        feature.properties &&
-        feature.properties.name &&
-        feature.properties.name.toLowerCase().includes(name.toLowerCase())
-      ) {
-        const coords = feature.geometry.coordinates;
-        map.flyTo({ center: coords, zoom: 14 });
-
-        setTimeout(() => createPopup(feature, coords, true), 300);
-        return;
-      }
-    }
-
-    // If still not found, use Google Maps search as fallback
-    const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(name + " Doncaster")}`;
-    window.open(googleMapsUrl, '_blank');
+    // If still not found, show error
+    alert("That location was not found. Try checking the spelling.");
   }
 
   searchInput.addEventListener('input', () => {
@@ -301,10 +382,9 @@
 
     const sourceId = 'composite';
 
-    // Collect features and try to populate savedPoints with actual data
+    // Collect features and update savedPoints with actual Mapbox Studio data
     map.on('idle', () => {
       const newFeatures = [];
-      const newSavedPoints = [];
       
       layers.forEach(layer => {
         const sourceLayer = layerToSourceLayer[layer];
@@ -317,13 +397,28 @@
             if (tileFeatures) {
               tileFeatures.forEach(f => {
                 newFeatures.push(f);
-                // Add to savedPoints for search functionality
+                
+                // Update savedPoints with actual Mapbox Studio data
                 if (f.properties && f.properties.name) {
-                  newSavedPoints.push({
-                    name: f.properties.name,
-                    description: f.properties.description || "No description",
-                    coordinates: f.geometry.coordinates
-                  });
+                  const existingPointIndex = savedPoints.findIndex(point => 
+                    point.name.toLowerCase() === f.properties.name.toLowerCase()
+                  );
+                  
+                  if (existingPointIndex !== -1) {
+                    // Update existing point with real Mapbox Studio data
+                    savedPoints[existingPointIndex] = {
+                      name: f.properties.name,
+                      description: f.properties.description || savedPoints[existingPointIndex].description,
+                      coordinates: f.geometry.coordinates
+                    };
+                  } else {
+                    // Add new point if not in our list
+                    savedPoints.push({
+                      name: f.properties.name,
+                      description: f.properties.description || "No description",
+                      coordinates: f.geometry.coordinates
+                    });
+                  }
                 }
               });
             }
@@ -334,21 +429,9 @@
       // Update allFeatures
       allFeatures.push(...newFeatures);
       
-      // If we found actual features, update savedPoints
-      if (newSavedPoints.length > 0) {
-        // Remove duplicates
-        const uniquePoints = [];
-        const seenNames = new Set();
-        [...savedPoints, ...newSavedPoints].forEach(point => {
-          if (!seenNames.has(point.name)) {
-            seenNames.add(point.name);
-            uniquePoints.push(point);
-          }
-        });
-        savedPoints = uniquePoints;
-        fuse.setCollection(savedPoints);
-        console.log('Updated savedPoints with', savedPoints.length, 'features');
-      }
+      // Update fuse search with the updated savedPoints
+      fuse.setCollection(savedPoints);
+      console.log('Updated savedPoints with actual Mapbox Studio data');
     });
 
     // Hover popup for map features
@@ -400,9 +483,6 @@
 </script>
 </body>
 </html>
-
-
-
 
 
 
