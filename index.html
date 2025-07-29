@@ -414,13 +414,40 @@ map.once('idle', () => {
       createPopup(e.features[0], e.lngLat, false);
     });
 
-    map.on('mouseleave', layer, () => {
-      map.getCanvas().style.cursor = '';
+map.on('mouseleave', layer, (e) => {
+  map.getCanvas().style.cursor = '';
+
+  // Use a small delay to see if mouse entered the popup
+  setTimeout(() => {
+    const popupEl = document.querySelector('.mapboxgl-popup-content');
+    if (!popupEl) return;
+
+    const rect = popupEl.getBoundingClientRect();
+    const { clientX, clientY } = e.originalEvent;
+
+    // If the mouse is not over the popup, close it
+    if (
+      clientX < rect.left || clientX > rect.right ||
+      clientY < rect.top || clientY > rect.bottom
+    ) {
       if (!popupOpenedByClick && currentPopup) {
         currentPopup.remove();
         currentPopup = null;
       }
-    });
+    }
+  }, 100);
+});
+    // Add click-to-close on popup itself
+document.addEventListener('click', (e) => {
+  const popupContent = document.querySelector('.mapboxgl-popup-content');
+  if (popupContent && popupContent.contains(e.target)) {
+    if (popupOpenedByClick && currentPopup) {
+      currentPopup.remove();
+      currentPopup = null;
+      popupOpenedByClick = false;
+    }
+  }
+});
   });
 
   // Global click: close popup if user clicks on empty map space
