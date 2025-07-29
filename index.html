@@ -1,306 +1,336 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8">
-  <title>Doncaster Coffee Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <meta charset="utf-8" />
+  <title>Doncaster Coffee Guide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    .search-box {
+
+    .mapboxgl-popup-content {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: sans-serif;
+      max-width: 220px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+    }
+
+    .custom-popup strong {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .custom-popup p {
+      font-size: 0.85em;
+      font-style: italic;
+      margin: 0 0 6px;
+    }
+
+    .custom-popup .directions-btn {
+      background-color: #EA736B;
+      color: white;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 0.85em;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+    }
+
+    .custom-popup .directions-btn:hover {
+      background-color: #d8655e;
+    }
+
+    #search-container {
       position: absolute;
-      z-index: 1;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: white;
-      border-radius: 5px;
-      padding: 6px 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1;
+      width: 90%;
+      max-width: 400px;
     }
-    input[type="text"] {
-      padding: 6px;
-      width: 200px;
+
+    #search {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 1em;
       border: 1px solid #ccc;
-      border-radius: 3px;
+      border-radius: 6px;
     }
-    .popup-button {
-      margin-top: 5px;
-      display: inline-block;
-      background: #0078A8;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      text-decoration: none;
+
+    #suggestions {
+      background: white;
+      border: 1px solid #ccc;
+      border-top: none;
+      max-height: 200px;
+      overflow-y: auto;
+      position: absolute;
+      width: 100%;
+      z-index: 2;
+    }
+
+    .suggestion {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .suggestion:hover {
+      background: #f0f0f0;
+    }
+
+    .no-results {
+      padding: 8px 12px;
+      color: #666;
+      font-style: italic;
     }
   </style>
 </head>
 <body>
-  <div class="search-box">
-    <input type="text" id="search" placeholder="Search for a place...">
-  </div>
-  <div id="map"></div>
-  <script>
-    mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/sightseekr/cmdlr4rap009h01r23f5z6h7i',
-      center: [-1.13, 53.52],
-      zoom: 10.4
-    });
+<div id="map"></div>
+<div id="search-container">
+  <input type="text" id="search" placeholder="Search for a coffee spot..." />
+  <div id="suggestions"></div>
+</div>
 
-    const geojsonData = {
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.118326662242924, 53.52227855274466]
-      },
-      "properties": {
-        "name": "West Street Coffee",
-        "description": "Great for coffee and cake.",
-        "link": "https://www.google.com/maps?cid=7732098197170659430"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1292517200610472, 53.52388521860511]
-      },
-      "properties": {
-        "name": "Cafe 1910 (In Danum Gallery, Library and Museum)",
-        "description": "A relaxed space inside the museum.",
-        "link": "https://www.google.com/maps?cid=1008549081973229459"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1390276619561702, 53.52259802251943]
-      },
-      "properties": {
-        "name": "Bone Idle Lounge",
-        "description": "Cosy independent coffee lounge.",
-        "link": "https://google.com/maps?cid=11035181184400722709"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.131123504036539, 53.52257959936845]
-      },
-      "properties": {
-        "name": "Da Leo Restaurant",
-        "description": "Italian restaurant with excellent coffee.",
-        "link": "https://www.google.com/maps?cid=6913375424484086838"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1320559692639953, 53.52271781229183]
-      },
-      "properties": {
-        "name": "Doncaster Tourist Information Centre",
-        "description": "Find info and a good espresso.",
-        "link": "https://www.google.com/maps?cid=674239188930906122"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1320216791303337, 53.52230456701365]
-      },
-      "properties": {
-        "name": "The Glass Strawberry",
-        "description": "Vibrant cafe with fresh breakfast and coffee.",
-        "link": "https://www.google.com/maps?cid=17678315068369981247"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1321804567236492, 53.52285945779891]
-      },
-      "properties": {
-        "name": "Banco Coffee Co",
-        "description": "Trendy and modern cafe.",
-        "link": "https://www.google.com/maps?cid=1769371057472287012"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.1342237625787765, 53.52344008120708]
-      },
-      "properties": {
-        "name": "Jazz Cafe",
-        "description": "Live music and strong coffee.",
-        "link": "https://www.google.com/maps?cid=14635295943506975263"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.132827, 53.522761]
-      },
-      "properties": {
-        "name": "Old man Staveley's coffee co",
-        "description": "Quirky vintage cafe with espresso blends.",
-        "link": "https://www.google.com/maps?cid=11699623048919577819"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.132552, 53.522458]
-      },
-      "properties": {
-        "name": "Back in Time Café",
-        "description": "Retro themed cafe.",
-        "link": "http://google.com/maps?cid=10559689921745810730"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.148336, 53.544083]
-      },
-      "properties": {
-        "name": "Boston & Co Bentley Pavilion",
-        "description": "Community coffee hub.",
-        "link": "https://www.google.com/maps?cid=9765442256895214233"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.133673, 53.522978]
-      },
-      "properties": {
-        "name": "Jimmy Piggs Coffee House",
-        "description": "Large menu and popular brunch spot.",
-        "link": "https://www.google.com/maps?cid=9568668619399891490"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.120967, 53.523114]
-      },
-      "properties": {
-        "name": "Cornerstone Coffee",
-        "description": "Friendly staff and artisan coffee.",
-        "link": "https://www.google.com/maps?cid=272364922763009188"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.128888, 53.522201]
-      },
-      "properties": {
-        "name": "Highfield Coffee Social",
-        "description": "Warm community space and cafe.",
-        "link": "https://www.google.com/maps?cid=14653791595216298550"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.130578, 53.500283]
-      },
-      "properties": {
-        "name": "TWEED at Wadworth",
-        "description": "Hidden gem just outside the centre.",
-        "link": "https://www.google.com/maps?cid=9866149075741907923"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-1.105001, 53.429981]
-      },
-      "properties": {
-        "name": "Feast Bawtry",
-        "description": "Stylish cafe in Bawtry.",
-        "link": "https://www.google.com/maps?cid=14094552448568676862"
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/sightseekr/cmdlr4rap009h01r23f5z6h7i',
+    center: [-1.133, 53.522],
+    zoom: 11.3
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+  map.addControl(new mapboxgl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: true,
+    showUserHeading: true
+  }));
+
+  const savedPoints = [
+    { name: "West Street Coffee" },
+    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)" },
+    { name: "Bone Idle Lounge" },
+    { name: "Da Leo Restaurant" },
+    { name: "Doncaster Tourist Information Centre" },
+    { name: "The Glass Strawberry" },
+    { name: "Banco Coffee Co" },
+    { name: "Jazz Cafe" },
+    { name: "Old man Staveley's coffee co" },
+    { name: "Back in Time Café" },
+    { name: "Boston & Co Bentley Pavilion" },
+    { name: "Jimmy Piggs Coffee House" },
+    { name: "Cornerstone Coffee" },
+    { name: "Highfield Coffee Social" },
+    { name: "TWEED at Wadworth" },
+    { name: "Feast Bawtry" }
+  ];
+
+  const directionsLinks = {
+    "West Street Coffee": "https://www.google.com/maps?cid=7732098197170659430",
+    "Cafe 1910 (In Danum Library, Gallery and Museum)": "https://www.google.com/maps?cid=1008549081973229459",
+    "Bone Idle Lounge": "https://google.com/maps?cid=11035181184400722709",
+    "Da Leo Restaurant": "https://www.google.com/maps?cid=6913375424484086838",
+    "Doncaster Tourist Information Centre": "https://www.google.com/maps?cid=674239188930906122",
+    "The Glass Strawberry": "https://www.google.com/maps?cid=17678315068369981247",
+    "Banco Coffee Co": "https://www.google.com/maps?cid=1769371057472287012",
+    "Jazz Cafe": "https://www.google.com/maps?cid=14635295943506975263",
+    "Old man Staveley's coffee co": "https://www.google.com/maps?cid=11699623048919577819",
+    "Back in time cafe": "http://google.com/maps?cid=10559689921745810730",
+    "Boston & Co Bentley Pavilion": "https://www.google.com/maps?cid=9765442256895214233",
+    "Jimmy Piggs Coffee House": "https://www.google.com/maps?cid=9568668619399891490",
+    "Cornerstone Coffee": "https://www.google.com/maps?cid=272364922763009188",
+    "Highfield Coffee Social": "https://www.google.com/maps?cid=14653791595216298550",
+    "TWEED at Wadworth": "https://www.google.com/maps?cid=9866149075741907923",
+    "Feast Bawtry": "https://www.google.com/maps?cid=14094552448568676862"
+  };
+
+  const fuse = new Fuse(savedPoints, {
+    keys: ['name'],
+    threshold: 0.4,
+    ignoreLocation: true,
+    includeScore: true
+  });
+
+  const searchInput = document.getElementById('search');
+  const suggestionsDiv = document.getElementById('suggestions');
+  let currentPopup = null;
+  let allFeatures = [];
+  let popupOpenedByClick = false;
+
+
+function createPopup(feature, lngLat, clicked = false) {
+  if (currentPopup) currentPopup.remove();
+  popupOpenedByClick = clicked;
+
+  const name = feature.properties.name || "No title";
+  const description = feature.properties.description || "No description";
+  const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+
+  currentPopup = new mapboxgl.Popup({ closeButton: false })
+    .setLngLat(lngLat)
+    .setHTML(`
+      <div class="custom-popup">
+        <strong>${name}</strong>
+        <p>${description}</p>
+        <a href="${directions}" class="directions-btn" target="_blank">
+          <span>Directions</span> <span>📍</span>
+        </a>
+      </div>
+    `)
+    .addTo(map);
+}
+
+
+function searchAndZoomToFeature(name) {
+  for (let feature of allFeatures) {
+    if (
+      feature.properties &&
+      feature.properties.name &&
+      feature.properties.name.toLowerCase().includes(name.toLowerCase())
+    ) {
+      const coords = feature.geometry.coordinates;
+      map.flyTo({ center: coords, zoom: 14 });
+
+      setTimeout(() => createPopup(feature, coords, true), 300);
+      return;
+    }
+  }
+
+  alert("That location was not found. Try zooming in or checking spelling.");
+}
+
+
+
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim();
+    suggestionsDiv.innerHTML = '';
+
+    if (!query) {
+      savedPoints.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = item.name;
+        div.onclick = () => {
+          searchInput.value = item.name;
+          suggestionsDiv.innerHTML = '';
+          searchAndZoomToFeature(item.name);
+        };
+        suggestionsDiv.appendChild(div);
+      });
+      return;
+    }
+
+    const results = fuse.search(query);
+    if (results.length) {
+      results.forEach(({ item }) => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = item.name;
+        div.onclick = () => {
+          searchInput.value = item.name;
+          suggestionsDiv.innerHTML = '';
+          searchAndZoomToFeature(item.name);
+        };
+        suggestionsDiv.appendChild(div);
+      });
+    } else {
+      const div = document.createElement('div');
+      div.className = 'no-results';
+      div.textContent = "Can't find what you're looking for? Try Google Maps or Visit Doncaster.";
+      suggestionsDiv.appendChild(div);
+    }
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const query = searchInput.value.trim();
+      const result = fuse.search(query)[0];
+      if (result) {
+        searchAndZoomToFeature(result.item.name);
+        suggestionsDiv.innerHTML = '';
       }
     }
-  ]
-};
+  });
 
-    map.on('load', () => {
-      map.addSource('points', {
-        type: 'geojson',
-        data: geojsonData
-      });
+  searchInput.addEventListener('focus', () => searchInput.dispatchEvent(new Event('input')));
 
-      map.addLayer({
-        id: 'points-layer',
-        type: 'circle',
-        source: 'points',
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#FF5722'
+  document.addEventListener('click', function (event) {
+    const isClickInside = searchInput.contains(event.target) || suggestionsDiv.contains(event.target);
+    if (!isClickInside) {
+      suggestionsDiv.innerHTML = '';
+    }
+  });
+
+map.on('load', () => {
+  const layers = ['city-centre-new', 'across-doncaster'];
+  const layerToSourceLayer = {
+    'city-centre-new': 'City_centre-0z9ge3',
+    'across-doncaster': 'Across_doncaster_2-16g8to'
+  };
+
+  const sourceId = 'composite';
+
+// Collect all features from all loaded tiles after idle
+map.once('idle', () => {
+  layers.forEach(layer => {
+    const sourceLayer = layerToSourceLayer[layer];
+    const tiles = map.style.sourceCaches[sourceId]._tiles;
+
+    for (let tileId in tiles) {
+      const tile = tiles[tileId];
+      if (tile && tile.featureIndex) {
+        const tileFeatures = tile.featureIndex.features[sourceLayer];
+        if (tileFeatures) {
+          tileFeatures.forEach(f => allFeatures.push(f));
         }
-      });
+      }
+    }
+  });
+});
 
-      let popup = new mapboxgl.Popup({ closeOnClick: true });
 
-      map.on('click', 'points-layer', (e) => {
-        const props = e.features[0].properties;
-        const coords = e.features[0].geometry.coordinates;
-        const html = `
-          <strong>${props.name}</strong><br>
-          ${props.description}<br>
-          <a class="popup-button" href="${props.link}" target="_blank">Directions</a>
-        `;
-        popup.setLngLat(coords).setHTML(html).addTo(map);
-      });
-
-      map.on('mouseenter', 'points-layer', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-
-      map.on('mouseleave', 'points-layer', () => {
-        map.getCanvas().style.cursor = '';
-      });
-
-      document.getElementById('search').addEventListener('input', function () {
-        const value = this.value.toLowerCase();
-        const match = geojsonData.features.find(f => f.properties.name.toLowerCase().includes(value));
-        if (match) {
-          const coords = match.geometry.coordinates;
-          map.flyTo({ center: coords, zoom: 14 });
-          const html = `
-            <strong>${match.properties.name}</strong><br>
-            ${match.properties.description}<br>
-            <a class="popup-button" href="${match.properties.link}" target="_blank">Directions</a>
-          `;
-          popup.setLngLat(coords).setHTML(html).addTo(map);
-        }
-      });
+  // Hover popup
+  layers.forEach(layer => {
+    map.on('mouseenter', layer, e => {
+      map.getCanvas().style.cursor = 'pointer';
+      createPopup(e.features[0], e.lngLat, false);
     });
-  </script>
+
+    map.on('mouseleave', layer, () => {
+      map.getCanvas().style.cursor = '';
+      if (!popupOpenedByClick && currentPopup) {
+        currentPopup.remove();
+        currentPopup = null;
+      }
+    });
+  });
+
+  // Global click: close popup if user clicks on empty map space
+  map.on('click', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers });
+    if (!features.length && currentPopup) {
+      currentPopup.remove();
+      currentPopup = null;
+      popupOpenedByClick = false;
+    }
+  });
+});
+
+</script>
 </body>
 </html>
+
