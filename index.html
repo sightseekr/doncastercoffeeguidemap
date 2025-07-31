@@ -297,7 +297,22 @@
       suggestionsDiv.innerHTML = '';
     }
   });
-
+function loadVisitedStatus() {
+  const saved = localStorage.getItem('visitedCoffeeShops');
+  if (saved) {
+    try {
+      const visitedMap = JSON.parse(saved);
+      savedPoints.forEach(point => {
+        if (visitedMap[point.name]) {
+          point.visited = true;
+        }
+      });
+    } catch (e) {
+      console.error("Error loading visited status:", e);
+    }
+  }
+}
+  
   map.on('load', () => {
     const layers = ['city-centre-new', 'across-doncaster'];
     const layerToSourceLayer = {
