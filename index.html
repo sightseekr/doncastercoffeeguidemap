@@ -82,6 +82,82 @@
       color: #666;
       font-style: italic;
     }
+#credit-box {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 2;
+  max-width: 280px;
+  font-size: 0.85em;
+  line-height: 1.4em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #444;
+}
+
+.credit-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.credit-logo {
+  height: 26px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.credit-logo:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.collab-x {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #333; /* charcoal grey for X */
+}
+
+.doncaster-logo {
+  height: 24px;
+}
+
+.sightseekr-logo {
+  height: 22px;
+}
+
+#credit-box p {
+  margin: 0;
+}
+
+#credit-box a {
+  color: #EA736B; /* Sightseekr brand colour */
+  text-decoration: none;
+  font-weight: 600;
+}
+
+#credit-box a:hover {
+  text-decoration: underline;
+}
+
+#credit-box a.doncaster-text {
+  color: #333 !important; /* charcoal grey */
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#credit-box a.doncaster-text:hover {
+  text-decoration: underline !important;
+}
   </style>
 </head>
 <body>
@@ -90,9 +166,27 @@
   <input type="text" id="search" placeholder="Search for a coffee spot..." />
   <div id="suggestions"></div>
 </div>
-
+<div id="credit-box">
+  <div class="credit-logos">
+    <a href="https://www.visitdoncaster.com" target="_blank" rel="noopener">
+      <img src="https://www.visitdoncaster.com/admin/resources/logo-1.svg" 
+           alt="Visit Doncaster logo" class="credit-logo doncaster-logo">
+    </a>
+    <span class="collab-x">×</span>
+    <a href="https://sightseekr.co.uk" target="_blank" rel="noopener">
+      <img src="https://static.wixstatic.com/media/f7dc79_06109c731b5f4d51b8f64ea38ea3935b~mv2.png/v1/fill/w_756,h_156,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/f7dc79_06109c731b5f4d51b8f64ea38ea3935b~mv2.png" 
+           alt="Sightseekr logo" class="credit-logo sightseekr-logo">
+    </a>
+  </div>
+ <p>
+  This map was created for 
+  <a href="https://www.visitdoncaster.com" target="_blank" class="doncaster-text">Visit Doncaster</a> 
+  by <a href="https://sightseekr.co.uk" target="_blank">Sightseekr</a>.<br>
+  For travel advice, custom itineraries & inspiration, head to <a href="https://sightseekr.co.uk" target="_blank">sightseekr.co.uk</a>.
+</p>
+</div>
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWJheDU5dWwwbjZqMmxzYjRqaW0wZ2FoIn0.XjR_Z_6vL3dcXrVECelgiA';
+  mapboxgl.accessToken = 'pk.eyJ1Ijoic2lnaHRzZWVrciIsImEiOiJjbWgxdmNsZ2owc3h2MDhxcGdiZno4c3ptIn0.ODNk5NVKUxNh0b9QoL5tqQ';
 
   const map = new mapboxgl.Map({
     container: 'map',
@@ -109,23 +203,23 @@
   }));
 
   const savedPoints = [
-    { name: "West Street Coffee", visited: false },
-    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)", visited: false },
-    { name: "Bone Idle Lounge", visited: false },
-    { name: "Da Leo Restaurant", visited: false },
-    { name: "Doncaster Tourist Information Centre", visited: false },
-    { name: "The Glass Strawberry", visited: false },
-    { name: "Banco Coffee Co", visited: false },
-    { name: "Jazz Cafe", visited: false },
-    { name: "Old man Staveley's coffee co", visited: false },
-    { name: "Back in Time Café", visited: false },
-    { name: "Boston & Co Bentley Pavilion", visited: false },
-    { name: "Jimmy Piggs Coffee House", visited: false },
-    { name: "Cornerstone Coffee", visited: false },
-    { name: "Highfield Coffee Social", visited: false },
-    { name: "TWEED at Wadworth", visited: false },
-    { name: "Feast Bawtry", visited: false },
-    { name: "The Little Goat Coffee Company", visited: false }
+    { name: "West Street Coffee" },
+    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)" },
+    { name: "Bone Idle Lounge" },
+    { name: "Da Leo Restaurant" },
+    { name: "Doncaster Tourist Information Centre" },
+    { name: "The Glass Strawberry" },
+    { name: "Banco Coffee Co" },
+    { name: "Jazz Cafe" },
+    { name: "Old man Staveley's coffee co" },
+    { name: "Back in Time Café" },
+    { name: "Boston & Co Bentley Pavilion" },
+    { name: "Jimmy Piggs Coffee House" },
+    { name: "Cornerstone Coffee" },
+    { name: "Highfield Coffee Social" },
+    { name: "TWEED at Wadworth" },
+    { name: "Feast Bawtry" },
+    { name: "The Little Goat Coffee Company" }
   ];
 
   const directionsLinks = {
@@ -297,22 +391,7 @@
       suggestionsDiv.innerHTML = '';
     }
   });
-function loadVisitedStatus() {
-  const saved = localStorage.getItem('visitedCoffeeShops');
-  if (saved) {
-    try {
-      const visitedMap = JSON.parse(saved);
-      savedPoints.forEach(point => {
-        if (visitedMap[point.name]) {
-          point.visited = true;
-        }
-      });
-    } catch (e) {
-      console.error("Error loading visited status:", e);
-    }
-  }
-}
-  
+
   map.on('load', () => {
     const layers = ['city-centre-new', 'across-doncaster'];
     const layerToSourceLayer = {
@@ -367,44 +446,52 @@ function loadVisitedStatus() {
     });
 
     // --- POPUP LOGIC STARTS HERE ---
-
-    // Only add hover popups if not on mobile
-    if (!isMobile()) {
-      layers.forEach(layer => {
-        map.on('mouseenter', layer, e => {
-          map.getCanvas().style.cursor = 'pointer';
-          createPopup(e.features[0], e.lngLat, false);
-        });
-        map.on('mouseleave', layer, () => {
-          map.getCanvas().style.cursor = '';
-          if (!popupOpenedByClick && currentPopup) {
-            currentPopup.remove();
-            currentPopup = null;
-          }
-        });
-      });
-    }
-
-    // Always add click/tap popups
-    layers.forEach(layer => {
-      map.on('click', layer, e => {
-        if (currentPopup) currentPopup.remove();
-        createPopup(e.features[0], e.lngLat, true);
-      });
+if (!isMobile()) {
+  layers.forEach(layer => {
+    // Hover: show popup (not locked)
+    map.on('mouseenter', layer, e => {
+      map.getCanvas().style.cursor = 'pointer';
+      createPopup(e.features[0], e.lngLat, false);
     });
 
-    // Global click: close popup if user clicks on empty map space
+    // When leaving the marker: wait a short tick and only close if
+    // not hovering the popup and not clicked (locked)
+    map.on('mouseleave', layer, () => {
+      map.getCanvas().style.cursor = '';
+      setTimeout(() => {
+        if (!popupOpenedByClick && !popupHovering && currentPopup) {
+          currentPopup.remove();
+          currentPopup = null;
+        }
+      }, 40); // tiny delay to allow mouse to enter popup
+    });
+
+    // Click on marker: open popup and lock it (until clicking map background)
+    map.on('click', layer, e => {
+      if (currentPopup) currentPopup.remove();
+      createPopup(e.features[0], e.lngLat, true);
+    });
+  });
+}else {
+    // Mobile: only click to open popup (no hover)
+    layers.forEach(layer => {
+        map.on('click', layer, e => {
+        if (currentPopup) currentPopup.remove();
+        createPopup(e.features[0], e.lngLat, true);
+        });
+    });
+}
+    // Click on map background: close any open popup
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers });
-      if (!features.length && currentPopup) {
+      const features = map.queryRenderedFeatures(e.point, { layers: layers });
+      if (features.length === 0 && currentPopup) {
         currentPopup.remove();
         currentPopup = null;
         popupOpenedByClick = false;
       }
     });
-
-    // --- POPUP LOGIC ENDS HERE ---
   });
 </script>
 </body>
 </html>
+
