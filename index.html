@@ -54,7 +54,7 @@
       max-width: 400px;
     }
     #search {
-      width: 100%;
+      width: 90%;
       padding: 8px 12px;
       font-size: 1em;
       border: 1px solid #ccc;
@@ -247,12 +247,12 @@
     zoom: 11.3
   });
 
-  map.addControl(new mapboxgl.NavigationControl());
+  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
-  }));
+  }), 'bottom-right');
 
   const savedPoints = [
     { name: "West Street Coffee" },
