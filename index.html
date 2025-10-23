@@ -158,6 +158,58 @@
 #credit-box a.doncaster-text:hover {
   text-decoration: underline !important;
 }
+@media (max-width: 600px) {
+  /* Credit box: centered top bar */
+  #credit-box {
+    position: absolute;
+    top: 10px;              /* top of the page */
+    left: 50%;              /* horizontal center */
+    transform: translateX(-50%);
+    width: 90%;            /* adjusts to content */
+    max-width: 400px;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    z-index: 2;
+  }
+
+  /* Logos smaller and horizontal */
+  .credit-logos {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .credit-logo {
+    height: 18px !important;
+    width: auto;
+  }
+
+  /* Search bar directly under credit box */
+  #search-container {
+    position: absolute;
+    top: calc(10px + var(--credit-box-height, 80px) + 10px); /* top + box height + gap */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    z-index: 3;
+  }
+  /* Suggestions appear correctly below input */
+  #suggestions {
+    top: 100%;
+  }
+}
   </style>
 </head>
 <body>
