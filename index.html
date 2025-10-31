@@ -18,6 +18,12 @@
       max-width: 220px;
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
+.custom-popup .dog-icon {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 1.4em;
+}
     .custom-popup strong {
       font-weight: bold;
       display: block;
@@ -54,7 +60,7 @@
       max-width: 400px;
     }
     #search {
-      width: 90%;
+      width: 100%;
       padding: 8px 12px;
       font-size: 1em;
       border: 1px solid #ccc;
@@ -158,58 +164,6 @@
 #credit-box a.doncaster-text:hover {
   text-decoration: underline !important;
 }
-@media (max-width: 600px) {
-  /* Credit box: centered top bar */
-  #credit-box {
-    position: absolute;
-    top: 10px;              /* top of the page */
-    left: 50%;              /* horizontal center */
-    transform: translateX(-50%);
-    width: 90%;            /* adjusts to content */
-    max-width: 400px;
-    padding: 4px 8px;
-    font-size: 0.75em;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    gap: 2px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    z-index: 2;
-  }
-
-  /* Logos smaller and horizontal */
-  .credit-logos {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    margin: 0;
-  }
-
-  .credit-logo {
-    height: 18px !important;
-    width: auto;
-  }
-
-  /* Search bar directly under credit box */
-  #search-container {
-    position: absolute;
-    top: calc(10px + var(--credit-box-height, 80px) + 10px); /* top + box height + gap */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 400px;
-    z-index: 3;
-  }
-  /* Suggestions appear correctly below input */
-  #suggestions {
-    top: 100%;
-  }
-}
   </style>
 </head>
 <body>
@@ -247,31 +201,31 @@
     zoom: 11.3
   });
 
-  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+  map.addControl(new mapboxgl.NavigationControl());
   map.addControl(new mapboxgl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
-  }), 'bottom-right');
+  }));
 
   const savedPoints = [
-    { name: "West Street Coffee" },
-    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)" },
-    { name: "Bone Idle Lounge" },
-    { name: "Da Leo Restaurant" },
-    { name: "Doncaster Tourist Information Centre" },
-    { name: "The Glass Strawberry" },
-    { name: "Banco Coffee Co" },
-    { name: "Jazz Cafe" },
-    { name: "Old man Staveley's coffee co" },
-    { name: "Back in Time Café" },
-    { name: "Boston & Co Bentley Pavilion" },
-    { name: "Jimmy Piggs Coffee House" },
-    { name: "Cornerstone Coffee" },
-    { name: "Highfield Coffee Social" },
-    { name: "TWEED at Wadworth" },
-    { name: "Feast Bawtry" },
-    { name: "The Little Goat Coffee Company" }
+    { name: "West Street Coffee", dogFriendly: false },
+    { name: "Cafe 1910 (In Danum Gallery, Library and Museum)", dogFriendly: false },
+    { name: "Bone Idle Lounge", dogFriendly: true },
+    { name: "Da Leo Restaurant", dogFriendly: false },
+    { name: "Doncaster Tourist Information Centre", dogFriendly: false },
+    { name: "The Glass Strawberry", dogFriendly: true },
+    { name: "Banco Coffee Co", dogFriendly: false },
+    { name: "Jazz Cafe", dogFriendly: true },
+    { name: "Old man Staveley's coffee co", dogFriendly: true },
+    { name: "Back in Time Café", dogFriendly: false },
+    { name: "Boston & Co Bentley Pavilion", dogFriendly: true },
+    { name: "Jimmy Piggs Coffee House", dogFriendly: false },
+    { name: "Cornerstone Coffee", dogFriendly: true },
+    { name: "Highfield Coffee Social", dogFriendly: true },
+    { name: "TWEED at Wadworth", dogFriendly: false },
+    { name: "Feast Bawtry", dogFriendly: false },
+    { name: "The Little Goat Coffee Company", dogFriendly: true }
   ];
 
   const directionsLinks = {
@@ -311,7 +265,10 @@
   function isMobile() {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
-
+function isDogFriendly(name) {
+  const point = savedPoints.find(p => p.name === name);
+  return point && point.dogFriendly;
+}
   function createPopup(feature, lngLat, clicked = false) {
     if (currentPopup) currentPopup.remove();
     popupOpenedByClick = clicked;
@@ -319,12 +276,14 @@
     const name = feature.properties.name || "No title";
     const description = feature.properties.description || "No description";
     const directions = directionsLinks[name] || `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+    const dogFriendly = isDogFriendly(name);
 
     currentPopup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(lngLat)
       .setHTML(`
         <div class="custom-popup">
-          <strong>${name}</strong>
+             ${dogFriendly ? '<div class="dog-icon">🐶</div>' : ''}
+        <strong>${name}</strong>
           <p>${description}</p>
           <a href="${directions}" class="directions-btn" target="_blank">
             <span>📍</span> <span>Directions</span> 
